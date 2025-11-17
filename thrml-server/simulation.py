@@ -339,6 +339,16 @@ def create_initial_chemicals(rows, cols, pattern='center_square', seed=42):
             U[:, c:c+3] = 0.0
             V[:, c:c+3] = 1.0
 
+    elif pattern == 'circle':
+        center_r, center_c = rows // 2, cols // 2
+        radius = min(rows, cols) // 8
+        for r in range(rows):
+            for c in range(cols):
+                dist = np.sqrt((r - center_r)**2 + (c - center_c)**2)
+                if dist <= radius:
+                    U[r, c] = 0.0
+                    V[r, c] = 1.0
+
     U += rng.uniform(-0.01, 0.01, U.shape)
     V += rng.uniform(-0.01, 0.01, V.shape)
 
@@ -403,6 +413,9 @@ class SimulationSession:
 
     def simulate_steps(self, n_steps):
         """Run n simulation steps and add to history"""
+        import time
+        start = time.time()
+
         schedule = SamplingSchedule(
             n_warmup=0,
             n_samples=n_steps,
@@ -410,6 +423,8 @@ class SimulationSession:
         )
 
         key = jax.random.key(len(self.history_u))
+
+        sample_start = time.time()
         states = sample_states(
             key,
             self.program,
@@ -418,15 +433,22 @@ class SimulationSession:
             [],
             [Block(self.all_u), Block(self.all_v)]
         )
+        sample_time = time.time() - sample_start
 
         # Add all new states to history
+        append_start = time.time()
         for i in range(n_steps):
             self.history_u.append(np.array(states[0][i]))
             self.history_v.append(np.array(states[1][i]))
+        append_time = time.time() - append_start
 
         # Update current state
         self.current_u = states[0][-1]
         self.current_v = states[1][-1]
+
+        total_time = time.time() - start
+        if len(self.history_v) % 30 == 0:  # Log every 30 steps
+            print(f"[PERF] simulate_steps({n_steps}): sample={sample_time:.4f}s, append={append_time:.4f}s, total={total_time:.4f}s", flush=True)
 
     def get_state(self, step=None):
         """Get state at specific step (None = latest)"""

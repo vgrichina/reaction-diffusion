@@ -25,10 +25,15 @@ def background_simulator():
     global session, simulation_running
 
     while simulation_running:
+        step_start = time.time()
         with session_lock:
             if session:
                 try:
+                    current_step = len(session.history_v) - 1
                     session.simulate_steps(1)
+                    step_time = time.time() - step_start
+                    if current_step % 30 == 0:  # Log every 30 steps
+                        print(f"[PERF] Background sim: step {current_step} -> {current_step+1}, compute={step_time:.4f}s", flush=True)
                 except Exception as e:
                     print(f"Simulation error: {e}")
 
@@ -40,6 +45,12 @@ def background_simulator():
 def index():
     """Serve the client HTML"""
     return send_from_directory('static', 'index.html')
+
+
+@app.route('/thrml-playground.html')
+def playground():
+    """Serve the playground HTML"""
+    return send_from_directory('static', 'thrml-playground.html')
 
 
 @app.route('/api/init', methods=['POST'])
@@ -71,6 +82,9 @@ def init_simulation():
 @app.route('/api/state', methods=['GET'])
 def get_state():
     """Get simulation state at specific step"""
+    import time
+    start_time = time.time()
+
     step = request.args.get('step', type=int)
 
     with session_lock:
@@ -79,10 +93,17 @@ def get_state():
 
         state = session.get_state(step)
 
+    lock_time = time.time()
+
     if state is None:
         return jsonify({'error': 'Invalid step'}), 400
 
-    return jsonify(state)
+    response = jsonify(state)
+    end_time = time.time()
+
+    print(f"[PERF] /api/state step={step}: lock={lock_time-start_time:.4f}s, json={end_time-lock_time:.4f}s, total={end_time-start_time:.4f}s", flush=True)
+
+    return response
 
 
 @app.route('/api/params', methods=['POST'])
@@ -197,7 +218,7 @@ def resume_simulation():
 if __name__ == '__main__':
     # Initialize default session
     print("Initializing simulation...")
-    session = SimulationSession(256, 256)
+    session = SimulationSession(128, 128)
     print("Starting server...")
 
     # Start background simulation
@@ -205,4 +226,8 @@ if __name__ == '__main__':
     background_thread = threading.Thread(target=background_simulator, daemon=True)
     background_thread.start()
 
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    import os
+    port = int(os.environ.get('PORT', 5001))
+    print(f"\n🌐 Server starting on http://localhost:{port}")
+    print(f"   Playground: http://localhost:{port}/thrml-playground.html\n")
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)

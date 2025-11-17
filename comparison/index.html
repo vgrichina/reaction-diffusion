@@ -294,7 +294,7 @@
                     <p class="impl-subtitle">Client-side simulation with ring buffer</p>
                 </div>
                 <div class="canvas-container">
-                    <canvas id="canvasNative" width="256" height="256"></canvas>
+                    <canvas id="canvasNative" width="128" height="128"></canvas>
                 </div>
                 <div class="stats-bar">
                     <div class="stat">
@@ -323,7 +323,7 @@
                     <p class="impl-subtitle">Server-side with unlimited history</p>
                 </div>
                 <div class="canvas-container">
-                    <canvas id="canvasTHRML" width="256" height="256"></canvas>
+                    <canvas id="canvasTHRML" width="128" height="128"></canvas>
                 </div>
                 <div class="stats-bar">
                     <div class="stat">
@@ -430,10 +430,10 @@
 
     <script>
         // Note: This is a simplified comparison that runs both implementations
-        // For THRML server, you need to run the server at localhost:5000
+        // For THRML server, you need to run the server at localhost:5001
 
-        const WIDTH = 256;
-        const HEIGHT = 256;
+        const WIDTH = 128;
+        const HEIGHT = 128;
 
         // Native JS simulation (simplified from native-js/index.html)
         const canvasNative = document.getElementById('canvasNative');
@@ -457,8 +457,21 @@
         let fpsNative = 0;
         let lastFrameNative = Date.now();
 
+        // Seeded random number generator (same seed as THRML server)
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed;
+            }
+            random() {
+                this.seed = (this.seed * 9301 + 49297) % 233280;
+                return this.seed / 233280;
+            }
+        }
+
         // Initialize native
         function initNative() {
+            const rng = new SeededRandom(42); // Same seed as THRML
+
             for (let i = 0; i < WIDTH * HEIGHT; i++) {
                 U_native[i] = 1.0;
                 V_native[i] = 0.0;
@@ -472,6 +485,15 @@
                     }
                 }
             }
+
+            // Add same random noise as THRML server
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U_native[i] += (rng.random() * 0.02) - 0.01; // uniform(-0.01, 0.01)
+                V_native[i] += (rng.random() * 0.02) - 0.01;
+                U_native[i] = Math.max(0, Math.min(1, U_native[i]));
+                V_native[i] = Math.max(0, Math.min(1, V_native[i]));
+            }
+
             stepCountNative = 0;
         }
 
@@ -547,9 +569,15 @@
             document.getElementById('historyNative').textContent = '1000';
         }
 
+        let thrmlCurrentStep = 0;
+
         function animateNative() {
-            if (isRunning) {
-                stepNative();
+            // Sync with THRML server: run native sim to match THRML's current step
+            if (isRunning && stepCountNative < thrmlCurrentStep) {
+                // Catch up to THRML server
+                while (stepCountNative < thrmlCurrentStep) {
+                    stepNative();
+                }
             }
             renderNative();
             requestAnimationFrame(animateNative);
@@ -566,7 +594,7 @@
         async function pollTHRML() {
             try {
                 const start = Date.now();
-                const response = await fetch('http://localhost:5000/api/state');
+                const response = await fetch('http://localhost:5001/api/state');
                 latencyTHRML = Date.now() - start;
                 document.getElementById('latencyTHRML').textContent = latencyTHRML + 'ms';
                 document.getElementById('serverLatency').textContent = `~${latencyTHRML}ms`;
@@ -605,7 +633,8 @@
                         document.getElementById('fpsTHRML').textContent = fpsTHRML;
                     }
                     lastFrameTHRML = now;
-                    document.getElementById('stepTHRML').textContent = state.step || 0;
+                    thrmlCurrentStep = state.step || 0;
+                    document.getElementById('stepTHRML').textContent = thrmlCurrentStep;
                 }
             } catch (error) {
                 console.error('THRML server not available:', error);
@@ -628,7 +657,7 @@
 
         document.getElementById('reset').addEventListener('click', () => {
             initNative();
-            fetch('http://localhost:5000/api/reset', { method: 'POST' }).catch(() => {});
+            fetch('http://localhost:5001/api/reset', { method: 'POST' }).catch(() => {});
         });
 
         // Presets
@@ -642,12 +671,12 @@
                 document.getElementById('kValue').textContent = params.k.toFixed(3);
 
                 initNative();
-                fetch('http://localhost:5000/api/params', {
+                fetch('http://localhost:5001/api/params', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ F: params.F, k: params.k })
                 }).catch(() => {});
-                fetch('http://localhost:5000/api/reset', { method: 'POST' }).catch(() => {});
+                fetch('http://localhost:5001/api/reset', { method: 'POST' }).catch(() => {});
             });
         });
 
@@ -665,7 +694,7 @@
         // Initialize
         initNative();
         animateNative();
-        setInterval(pollTHRML, 100); // Poll THRML server at 10Hz
+        setInterval(pollTHRML, 500); // Poll THRML server at 2Hz (reduced load)
     </script>
 </body>
 </html>

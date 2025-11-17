@@ -484,8 +484,8 @@
 
     <script>
         const API_BASE = '';  // Same origin
-        const WIDTH = 256;
-        const HEIGHT = 256;
+        const WIDTH = 128;
+        const HEIGHT = 128;
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -517,7 +517,7 @@
             const startTime = Date.now();
             const options = {
                 method,
-                headers: {' Content-Type': 'application/json' }
+                headers: {'Content-Type': 'application/json' }
             };
 
             if (body) {
@@ -623,7 +623,7 @@
 
         function startPolling() {
             if (pollInterval) return;
-            pollInterval = setInterval(pollState, 100);  // 10 Hz polling
+            pollInterval = setInterval(pollState, 500);  // 2 Hz polling (reduced server load)
         }
 
         function stopPolling() {

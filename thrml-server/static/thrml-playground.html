@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THRML Reaction-Diffusion Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 1em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #764ba2;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .canvas-container {
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .control-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.preset {
+            background: #48bb78;
+        }
+
+        button.preset:hover {
+            background: #38a169;
+        }
+
+        button.preset.active {
+            background: #2f855a;
+            box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.3);
+        }
+
+        button.action {
+            background: #f56565;
+        }
+
+        button.action:hover {
+            background: #e53e3e;
+        }
+
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .param-control {
+            margin-bottom: 15px;
+        }
+
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .param-value {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .timeline-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .timeline-info {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .timeline-info .current {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        button.control-btn {
+            padding: 10px 16px;
+            font-size: 1.1em;
+        }
+
+        button.control-btn.active {
+            background: #48bb78;
+        }
+
+        .timeline-slider {
+            margin-top: 10px;
+        }
+
+        .timeline-track {
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .timeline-thumb {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-thumb:active {
+            cursor: grabbing;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-message.info {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 THRML Reaction-Diffusion Playground <span class="badge">THRML Powered</span></h1>
+        <p class="subtitle">Gray-Scott model with unlimited history and time-travel</p>
+
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <div class="main-content">
+            <div class="canvas-section">
+                <div class="canvas-container">
+                    <canvas id="canvas" width="128" height="128"></canvas>
+                    <div class="canvas-overlay" id="overlay">Step: 0</div>
+                </div>
+
+                <div class="timeline-section">
+                    <div class="timeline-header">
+                        <h3>⏱ Time Travel</h3>
+                        <div class="timeline-info">
+                            Step: <span class="current" id="stepDisplay">0</span> / <span id="maxStep">0</span>
+                        </div>
+                    </div>
+
+                    <div class="playback-controls">
+                        <button class="control-btn" id="stepBack">◄</button>
+                        <button class="control-btn active" id="playPause">▶</button>
+                        <button class="control-btn" id="stepForward">►</button>
+                        <button id="jumpToStart">⏮ Start</button>
+                        <button id="jumpToEnd">⏭ End</button>
+                    </div>
+
+                    <div class="timeline-slider">
+                        <div class="timeline-track" id="track">
+                            <div class="timeline-progress" id="progress"></div>
+                            <div class="timeline-thumb" id="thumb"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <div class="control-panel">
+                    <h3>🎨 Initial Patterns</h3>
+                    <div class="pattern-grid">
+                        <button class="preset active" data-pattern="stripes">📏 Stripes</button>
+                        <button class="preset" data-pattern="center_square">⬛ Center Square</button>
+                        <button class="preset" data-pattern="random">🎲 Random</button>
+                        <button class="preset" data-pattern="circle">⭕ Circle</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <h3>⚙️ Gray-Scott Parameters</h3>
+
+                    <div class="pattern-grid" style="margin-bottom: 20px;">
+                        <button class="preset" data-f="0.055" data-k="0.062">Spots</button>
+                        <button class="preset" data-f="0.035" data-k="0.060">Stripes</button>
+                        <button class="preset" data-f="0.014" data-k="0.054">Spirals</button>
+                        <button class="preset" data-f="0.039" data-k="0.058">Worms</button>
+                    </div>
+
+                    <div class="param-control">
+                        <div class="param-label">
+                            <span>Feed Rate (F)</span>
+                            <span class="param-value" id="f-value">0.055</span>
+                        </div>
+                        <input type="range" id="f-slider" min="0.01" max="0.1" step="0.001" value="0.055">
+                    </div>
+
+                    <div class="param-control">
+                        <div class="param-label">
+                            <span>Kill Rate (k)</span>
+                            <span class="param-value" id="k-value">0.062</span>
+                        </div>
+                        <input type="range" id="k-slider" min="0.045" max="0.07" step="0.001" value="0.062">
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <h3>🚀 Actions</h3>
+                    <button id="runSimulation" style="width: 100%; margin-bottom: 10px;">Run 100 Steps</button>
+                    <button class="action" id="resetSimulation" style="width: 100%;">Reset Simulation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WIDTH = 128;
+        const HEIGHT = 128;
+        const API_BASE = 'http://localhost:5001';
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentStep = 0;
+        let maxHistoryStep = 0;
+        let isPlaying = false;
+        let lastPlayTime = 0;
+        let currentPattern = 'stripes';
+        let params = { F: 0.055, k: 0.062 };
+
+        // Render function with viridis colormap
+        function renderGrid(vData) {
+            const imageData = ctx.createImageData(WIDTH, HEIGHT);
+            const data = imageData.data;
+
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                const v = vData[i];
+                let r, g, b;
+
+                if (v < 0.5) {
+                    const t = v * 2;
+                    r = Math.floor(13 + (128 - 13) * t);
+                    g = Math.floor(8 + (55 - 8) * t);
+                    b = Math.floor(135 + (188 - 135) * t);
+                } else {
+                    const t = (v - 0.5) * 2;
+                    r = Math.floor(128 + (253 - 128) * t);
+                    g = Math.floor(55 + (231 - 55) * t);
+                    b = Math.floor(188 + (37 - 188) * t);
+                }
+
+                data[i * 4] = r;
+                data[i * 4 + 1] = g;
+                data[i * 4 + 2] = b;
+                data[i * 4 + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Fetch and render specific step
+        async function renderStep(step) {
+            try {
+                const response = await fetch(`${API_BASE}/api/state?step=${step}`);
+                const state = await response.json();
+
+                if (state.v_grid) {
+                    const vData = new Float32Array(state.v_grid);
+                    renderGrid(vData);
+
+                    maxHistoryStep = state.maxStep || 0;
+                    document.getElementById('maxStep').textContent = maxHistoryStep;
+                    document.getElementById('overlay').textContent = `Step: ${step}`;
+                }
+            } catch (error) {
+                console.error('Failed to fetch state:', error);
+                showStatus('Server connection error', 'error');
+            }
+        }
+
+        // Jump to specific step
+        async function jumpToStep(step) {
+            currentStep = Math.max(0, Math.min(maxHistoryStep, step));
+            updateUI();
+            await renderStep(currentStep);
+        }
+
+        // Update UI elements
+        function updateUI() {
+            const progress = maxHistoryStep > 0 ? (currentStep / maxHistoryStep) * 100 : 0;
+            document.getElementById('progress').style.width = progress + '%';
+            document.getElementById('thumb').style.left = progress + '%';
+            document.getElementById('stepDisplay').textContent = currentStep;
+        }
+
+        // Timeline drag handling
+        let isDragging = false;
+        const track = document.getElementById('track');
+        const thumb = document.getElementById('thumb');
+
+        function handleDrag(e) {
+            const rect = track.getBoundingClientRect();
+            const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+            const percent = x / rect.width;
+            jumpToStep(Math.round(percent * maxHistoryStep));
+        }
+
+        thumb.addEventListener('mousedown', () => {
+            isDragging = true;
+            isPlaying = false;
+            updatePlayButton();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) handleDrag(e);
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        track.addEventListener('click', handleDrag);
+
+        // Playback controls
+        document.getElementById('playPause').addEventListener('click', function() {
+            isPlaying = !isPlaying;
+            updatePlayButton();
+            if (isPlaying) animate(performance.now());
+        });
+
+        document.getElementById('stepBack').addEventListener('click', () => {
+            isPlaying = false;
+            updatePlayButton();
+            jumpToStep(currentStep - 1);
+        });
+
+        document.getElementById('stepForward').addEventListener('click', () => {
+            isPlaying = false;
+            updatePlayButton();
+            jumpToStep(currentStep + 1);
+        });
+
+        document.getElementById('jumpToStart').addEventListener('click', () => {
+            isPlaying = false;
+            updatePlayButton();
+            jumpToStep(0);
+        });
+
+        document.getElementById('jumpToEnd').addEventListener('click', () => {
+            isPlaying = false;
+            updatePlayButton();
+            jumpToStep(maxHistoryStep);
+        });
+
+        function updatePlayButton() {
+            const btn = document.getElementById('playPause');
+            btn.classList.toggle('active', isPlaying);
+            btn.textContent = isPlaying ? '⏸' : '▶';
+        }
+
+        // Animation loop
+        function animate(timestamp) {
+            if (!isPlaying) return;
+
+            const elapsed = timestamp - lastPlayTime;
+            if (elapsed >= 50) { // 20 FPS
+                currentStep++;
+                if (currentStep > maxHistoryStep) currentStep = 0;
+                jumpToStep(currentStep);
+                lastPlayTime = timestamp;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Pattern selection
+        document.querySelectorAll('.preset[data-pattern]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.preset[data-pattern]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentPattern = this.dataset.pattern;
+            });
+        });
+
+        // Parameter presets
+        document.querySelectorAll('.preset[data-f]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                params.F = parseFloat(this.dataset.f);
+                params.k = parseFloat(this.dataset.k);
+
+                document.getElementById('f-slider').value = params.F;
+                document.getElementById('k-slider').value = params.k;
+                document.getElementById('f-value').textContent = params.F;
+                document.getElementById('k-value').textContent = params.k;
+            });
+        });
+
+        // Parameter sliders
+        document.getElementById('f-slider').addEventListener('input', function() {
+            params.F = parseFloat(this.value);
+            document.getElementById('f-value').textContent = this.value;
+        });
+
+        document.getElementById('k-slider').addEventListener('input', function() {
+            params.k = parseFloat(this.value);
+            document.getElementById('k-value').textContent = this.value;
+        });
+
+        // Run simulation
+        document.getElementById('runSimulation').addEventListener('click', async () => {
+            showStatus('Running 100 simulation steps...', 'info');
+
+            try {
+                await fetch(`${API_BASE}/api/simulate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ steps: 100 })
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await renderStep(currentStep);
+                showStatus('✓ 100 steps completed!', 'success');
+            } catch (error) {
+                showStatus('Simulation failed', 'error');
+            }
+        });
+
+        // Reset simulation
+        document.getElementById('resetSimulation').addEventListener('click', async () => {
+            isPlaying = false;
+            updatePlayButton();
+
+            try {
+                // Update parameters
+                await fetch(`${API_BASE}/api/params`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+
+                // Reset with selected pattern
+                await fetch(`${API_BASE}/api/reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern: currentPattern })
+                });
+
+                currentStep = 0;
+                maxHistoryStep = 0;
+                await renderStep(0);
+                showStatus(`✓ Reset with ${currentPattern} pattern`, 'success');
+            } catch (error) {
+                showStatus('Reset failed', 'error');
+            }
+        });
+
+        // Status messages
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + type;
+            statusEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Initialize
+        renderStep(0);
+        showStatus('Ready! Select a pattern and parameters, then click "Reset Simulation"', 'info');
+    </script>
+</body>
+</html>
