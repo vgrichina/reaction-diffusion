@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel History Comparison - THRML vs Native JS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1em;
+        }
+
+        /* Simulation Info Bar */
+        .info-bar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .info-value.status {
+            font-size: 1em;
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: #48bb78;
+            color: white;
+        }
+
+        .info-value.status.running {
+            background: #48bb78;
+        }
+
+        .info-value.status.ready {
+            background: #667eea;
+        }
+
+        /* Comparison Grid */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .implementation {
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .implementation.native {
+            border-color: #48bb78;
+        }
+
+        .implementation.thrml {
+            border-color: #764ba2;
+        }
+
+        .impl-header {
+            padding: 15px 20px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+        }
+
+        .implementation.native .impl-header {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+
+        .implementation.thrml .impl-header {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+        }
+
+        .impl-header h2 {
+            font-size: 1.3em;
+            margin-bottom: 3px;
+        }
+
+        .impl-subtitle {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .canvas-container {
+            background: #000;
+            position: relative;
+            aspect-ratio: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        /* Unified Timeline Controls */
+        .timeline-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .timeline-header h3 {
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        .timeline-info {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .timeline-info .current {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .playback-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.control-btn {
+            padding: 12px 16px;
+            font-size: 1.1em;
+        }
+
+        button.active {
+            background: #48bb78;
+        }
+
+        .speed-control {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .speed-control button {
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+
+        .speed-control .label {
+            font-size: 0.85em;
+            color: #666;
+            margin-right: 5px;
+            font-weight: 600;
+        }
+
+        /* Timeline Slider */
+        .timeline-slider-container {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline-track {
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: width 0.1s ease;
+        }
+
+        .timeline-thumb {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-thumb:active {
+            cursor: grabbing;
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        /* Pattern Controls */
+        .pattern-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .pattern-controls h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button.preset {
+            background: #48bb78;
+        }
+
+        button.preset:hover {
+            background: #38a169;
+        }
+
+        button.action {
+            background: #f56565;
+        }
+
+        button.action:hover {
+            background: #e53e3e;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-weight: 600;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Parallel History Comparison</h1>
+        <p class="subtitle">Synchronized time-travel across Native JavaScript and THRML implementations</p>
+
+        <!-- Info Bar -->
+        <div class="info-bar">
+            <div class="info-item">
+                <div class="info-label">Current Step</div>
+                <div class="info-value" id="currentStep">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">THRML History</div>
+                <div class="info-value" id="thrmlHistory">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Native History</div>
+                <div class="info-value">2000</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value status ready" id="status">Ready</div>
+            </div>
+        </div>
+
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <!-- Comparison Grid -->
+        <div class="comparison-grid">
+            <div class="implementation native">
+                <div class="impl-header">
+                    <h2>Native JavaScript</h2>
+                    <p class="impl-subtitle">Ring Buffer - Last 2000 Frames</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="canvasNative" width="256" height="256"></canvas>
+                    <div class="canvas-overlay" id="overlayNative">Step: 0</div>
+                </div>
+            </div>
+
+            <div class="implementation thrml">
+                <div class="impl-header">
+                    <h2>THRML Server</h2>
+                    <p class="impl-subtitle">Unlimited History - All Frames</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="canvasTHRML" width="256" height="256"></canvas>
+                    <div class="canvas-overlay" id="overlayTHRML">Step: 0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unified Timeline Controls -->
+        <div class="timeline-section">
+            <div class="timeline-header">
+                <h3>🎮 Unified Timeline Control</h3>
+                <div class="timeline-info">
+                    Step: <span class="current" id="stepDisplay">0</span> / <span id="maxStepDisplay">2000</span>
+                </div>
+            </div>
+
+            <div class="timeline-controls">
+                <div class="playback-buttons">
+                    <button class="control-btn" id="stepBackward" title="Step Backward">◄</button>
+                    <button class="control-btn" id="playBackward" title="Play Backward">◄◄</button>
+                    <button class="control-btn active" id="playPause" title="Play/Pause">▶</button>
+                    <button class="control-btn" id="playForward" title="Play Forward">▶▶</button>
+                    <button class="control-btn" id="stepForward" title="Step Forward">►</button>
+                </div>
+
+                <div class="speed-control">
+                    <span class="label">Speed:</span>
+                    <button class="speed-btn" data-speed="0.25">0.25x</button>
+                    <button class="speed-btn active" data-speed="1">1x</button>
+                    <button class="speed-btn" data-speed="2">2x</button>
+                    <button class="speed-btn" data-speed="4">4x</button>
+                </div>
+            </div>
+
+            <div class="timeline-slider-container">
+                <div class="timeline-track" id="timelineTrack">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                    <div class="timeline-thumb" id="timelineThumb"></div>
+                </div>
+                <div class="timeline-labels">
+                    <span>0</span>
+                    <span>500</span>
+                    <span>1000</span>
+                    <span>1500</span>
+                    <span id="maxLabel">2000</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pattern Controls -->
+        <div class="pattern-controls">
+            <h3>Pattern Presets & Actions</h3>
+            <div class="pattern-grid">
+                <button class="preset" data-f="0.055" data-k="0.062">Spots</button>
+                <button class="preset" data-f="0.035" data-k="0.060">Stripes</button>
+                <button class="preset" data-f="0.014" data-k="0.054">Spirals</button>
+                <button class="preset" data-f="0.039" data-k="0.058">Worms</button>
+            </div>
+            <div class="pattern-grid">
+                <button class="action" id="resetBoth">Reset Both</button>
+                <button id="run2000">Run 2000 Steps</button>
+                <button id="jumpToEnd">Jump to End</button>
+                <button id="jumpToStart">Jump to Start</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WIDTH = 256;
+        const HEIGHT = 256;
+        const RING_BUFFER_SIZE = 2000;
+
+        // Canvas contexts
+        const canvasNative = document.getElementById('canvasNative');
+        const ctxNative = canvasNative.getContext('2d');
+        const canvasTHRML = document.getElementById('canvasTHRML');
+        const ctxTHRML = canvasTHRML.getContext('2d');
+
+        // Simulation state
+        let params = {
+            Du: 0.16,
+            Dv: 0.08,
+            F: 0.055,
+            k: 0.062,
+            dt: 1.0
+        };
+
+        // Native JS simulation arrays
+        let U_native = new Float32Array(WIDTH * HEIGHT);
+        let V_native = new Float32Array(WIDTH * HEIGHT);
+        let U_next_native = new Float32Array(WIDTH * HEIGHT);
+        let V_next_native = new Float32Array(WIDTH * HEIGHT);
+
+        // Ring buffer for native history (stores V values for rendering)
+        const nativeHistory = [];
+        let nativeSimStep = 0;
+
+        // Timeline state
+        let currentTimelineStep = 0;
+        let maxStep = 2000;
+        let isPlaying = false;
+        let playDirection = 1; // 1 = forward, -1 = backward
+        let playbackSpeed = 1;
+        let lastPlayTime = 0;
+
+        // THRML state
+        let thrmlMaxStep = 0;
+
+        // Seeded random number generator
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed;
+            }
+            random() {
+                this.seed = (this.seed * 9301 + 49297) % 233280;
+                return this.seed / 233280;
+            }
+        }
+
+        // Initialize native simulation
+        function initNative() {
+            const rng = new SeededRandom(42);
+
+            // Initialize with same pattern as THRML (stripes)
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U_native[i] = 1.0;
+                V_native[i] = 0.0;
+            }
+
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    if (x % 20 < 3) {
+                        const idx = y * WIDTH + x;
+                        U_native[idx] = 0.0;
+                        V_native[idx] = 1.0;
+                    }
+                }
+            }
+
+            // Add noise
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U_native[i] += (rng.random() * 0.02) - 0.01;
+                V_native[i] += (rng.random() * 0.02) - 0.01;
+                U_native[i] = Math.max(0, Math.min(1, U_native[i]));
+                V_native[i] = Math.max(0, Math.min(1, V_native[i]));
+            }
+
+            // Store initial state
+            nativeHistory.length = 0;
+            nativeHistory.push(new Float32Array(V_native));
+            nativeSimStep = 0;
+        }
+
+        // Laplacian calculation
+        function laplacian(arr, x, y) {
+            const idx = y * WIDTH + x;
+            const c = arr[idx];
+            const n = arr[((y - 1 + HEIGHT) % HEIGHT) * WIDTH + x];
+            const s = arr[((y + 1) % HEIGHT) * WIDTH + x];
+            const e = arr[y * WIDTH + ((x + 1) % WIDTH)];
+            const w = arr[y * WIDTH + ((x - 1 + WIDTH) % WIDTH)];
+            return (n + s + e + w - 4 * c);
+        }
+
+        // Step native simulation
+        function stepNative() {
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    const idx = y * WIDTH + x;
+                    const u = U_native[idx];
+                    const v = V_native[idx];
+                    const lapU = laplacian(U_native, x, y);
+                    const lapV = laplacian(V_native, x, y);
+                    const uvv = u * v * v;
+
+                    U_next_native[idx] = u + params.dt * (
+                        params.Du * lapU - uvv + params.F * (1 - u)
+                    );
+                    V_next_native[idx] = v + params.dt * (
+                        params.Dv * lapV + uvv - (params.F + params.k) * v
+                    );
+
+                    U_next_native[idx] = Math.max(0, Math.min(1, U_next_native[idx]));
+                    V_next_native[idx] = Math.max(0, Math.min(1, V_next_native[idx]));
+                }
+            }
+
+            [U_native, U_next_native] = [U_next_native, U_native];
+            [V_native, V_next_native] = [V_next_native, V_native];
+
+            // Store in ring buffer
+            if (nativeHistory.length >= RING_BUFFER_SIZE) {
+                nativeHistory.shift();
+            }
+            nativeHistory.push(new Float32Array(V_native));
+            nativeSimStep++;
+        }
+
+        // Render function with colormap
+        function renderGrid(ctx, vData, width, height) {
+            const imageData = ctx.createImageData(width, height);
+            const data = imageData.data;
+
+            for (let i = 0; i < width * height; i++) {
+                const v = vData[i];
+                let r, g, b;
+
+                // Viridis-like colormap
+                if (v < 0.5) {
+                    const t = v * 2;
+                    r = Math.floor(13 + (128 - 13) * t);
+                    g = Math.floor(8 + (55 - 8) * t);
+                    b = Math.floor(135 + (188 - 135) * t);
+                } else {
+                    const t = (v - 0.5) * 2;
+                    r = Math.floor(128 + (253 - 128) * t);
+                    g = Math.floor(55 + (231 - 55) * t);
+                    b = Math.floor(188 + (37 - 188) * t);
+                }
+
+                data[i * 4] = r;
+                data[i * 4 + 1] = g;
+                data[i * 4 + 2] = b;
+                data[i * 4 + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Render native at specific step
+        function renderNativeAtStep(step) {
+            if (step >= 0 && step < nativeHistory.length) {
+                renderGrid(ctxNative, nativeHistory[step], WIDTH, HEIGHT);
+                // Don't update overlay here - will be updated by updateTimelineUI()
+            }
+        }
+
+        // Render THRML at specific step
+        async function renderTHRMLAtStep(step) {
+            try {
+                const response = await fetch(`http://localhost:5002/api/thrml/state?step=${step}`);
+                const state = await response.json();
+
+                if (state.v_grid) {
+                    const vData = new Float32Array(state.v_grid);
+                    renderGrid(ctxTHRML, vData, WIDTH, HEIGHT);
+                    // Don't update overlay here - will be updated by updateTimelineUI()
+                    thrmlMaxStep = state.maxStep || 0;
+                    document.getElementById('thrmlHistory').textContent = thrmlMaxStep;
+                }
+            } catch (error) {
+                console.error('Failed to fetch THRML state:', error);
+                showStatus('THRML server error', 'error');
+            }
+        }
+
+        // Render native from server
+        async function renderNativeFromServer(step) {
+            try {
+                const response = await fetch(`http://localhost:5002/api/native/state?step=${step}`);
+                const state = await response.json();
+
+                if (state.v_grid) {
+                    const vData = new Float32Array(state.v_grid);
+                    renderGrid(ctxNative, vData, WIDTH, HEIGHT);
+                    // Don't update overlay here - will be updated by updateTimelineUI()
+                }
+            } catch (error) {
+                console.error('Failed to fetch native state:', error);
+            }
+        }
+
+        // Update timeline UI
+        function updateTimelineUI() {
+            const progress = maxStep > 0 ? (currentTimelineStep / maxStep) * 100 : 0;
+            document.getElementById('timelineProgress').style.width = progress + '%';
+            document.getElementById('timelineThumb').style.left = progress + '%';
+
+            // Update all step displays synchronously
+            const stepDisplays = [
+                document.getElementById('stepDisplay'),
+                document.getElementById('currentStep'),
+                document.getElementById('overlayNative'),
+                document.getElementById('overlayTHRML')
+            ];
+
+            stepDisplays[0].textContent = currentTimelineStep;
+            stepDisplays[1].textContent = currentTimelineStep;
+            stepDisplays[2].textContent = `Step: ${currentTimelineStep}`;
+            stepDisplays[3].textContent = `Step: ${currentTimelineStep}`;
+        }
+
+        // Jump to specific step
+        async function jumpToStep(step) {
+            currentTimelineStep = Math.max(0, Math.min(maxStep, step));
+
+            console.log(`jumpToStep(${step}) -> currentTimelineStep=${currentTimelineStep}, maxStep=${maxStep}`);
+
+            // Update UI immediately for responsive feedback
+            updateTimelineUI();
+
+            // Render both implementations at this step from server (async)
+            await Promise.all([
+                renderNativeFromServer(currentTimelineStep),
+                renderTHRMLAtStep(currentTimelineStep)
+            ]);
+        }
+
+        // Animation loop
+        function animate(timestamp) {
+            if (isPlaying && maxStep > 0) {
+                const elapsed = timestamp - lastPlayTime;
+                const stepInterval = 1000 / (30 * playbackSpeed); // 30 FPS base
+
+                if (elapsed >= stepInterval) {
+                    currentTimelineStep += playDirection;
+
+                    // Loop at boundaries
+                    if (currentTimelineStep > maxStep) {
+                        currentTimelineStep = 0;
+                    } else if (currentTimelineStep < 0) {
+                        currentTimelineStep = maxStep;
+                    }
+
+                    jumpToStep(currentTimelineStep);
+                    lastPlayTime = timestamp;
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Timeline interaction
+        let isDragging = false;
+        const track = document.getElementById('timelineTrack');
+        const thumb = document.getElementById('timelineThumb');
+
+        function handleTimelineDrag(e) {
+            const rect = track.getBoundingClientRect();
+            const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+            const percent = x / rect.width;
+            jumpToStep(Math.round(percent * maxStep));
+        }
+
+        thumb.addEventListener('mousedown', () => {
+            isDragging = true;
+            isPlaying = false;
+            updatePlayButton();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) handleTimelineDrag(e);
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        track.addEventListener('click', handleTimelineDrag);
+
+        // Playback controls
+        document.getElementById('playPause').addEventListener('click', function() {
+            isPlaying = !isPlaying;
+            playDirection = 1;
+            updatePlayButton();
+            lastPlayTime = performance.now();
+        });
+
+        document.getElementById('playForward').addEventListener('click', function() {
+            isPlaying = true;
+            playDirection = 1;
+            updatePlayButton();
+            lastPlayTime = performance.now();
+        });
+
+        document.getElementById('playBackward').addEventListener('click', function() {
+            isPlaying = true;
+            playDirection = -1;
+            updatePlayButton();
+            lastPlayTime = performance.now();
+        });
+
+        document.getElementById('stepForward').addEventListener('click', () => {
+            isPlaying = false;
+            jumpToStep(currentTimelineStep + 1);
+            updatePlayButton();
+        });
+
+        document.getElementById('stepBackward').addEventListener('click', () => {
+            isPlaying = false;
+            jumpToStep(currentTimelineStep - 1);
+            updatePlayButton();
+        });
+
+        function updatePlayButton() {
+            const btn = document.getElementById('playPause');
+            btn.classList.toggle('active', isPlaying);
+            btn.textContent = isPlaying ? '⏸' : '▶';
+
+            document.getElementById('status').textContent = isPlaying ? 'Playing' : 'Paused';
+            document.getElementById('status').className = 'info-value status ' + (isPlaying ? 'running' : 'ready');
+        }
+
+        // Speed control
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                playbackSpeed = parseFloat(this.dataset.speed);
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Jump buttons
+        document.getElementById('jumpToStart').addEventListener('click', () => {
+            isPlaying = false;
+            jumpToStep(0);
+            updatePlayButton();
+        });
+
+        document.getElementById('jumpToEnd').addEventListener('click', () => {
+            isPlaying = false;
+            jumpToStep(Math.min(thrmlMaxStep, nativeHistory.length - 1));
+            updatePlayButton();
+        });
+
+        // Run 2000 steps
+        document.getElementById('run2000').addEventListener('click', async () => {
+            showStatus('Starting dual simulation run to 2000 steps...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:5002/api/run-to-target', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.status === 'started') {
+                    showStatus('Dual simulation running... check console for progress', 'info');
+                    checkSimulationProgress();
+                } else if (result.status === 'already_complete') {
+                    showStatus('Already complete! Ready for time-travel!', 'success');
+                }
+            } catch (error) {
+                showStatus('Failed to start simulation', 'error');
+            }
+        });
+
+        async function checkSimulationProgress() {
+            try {
+                const response = await fetch('http://localhost:5002/api/status');
+                const status = await response.json();
+
+                if (status.running) {
+                    showStatus(`Running: Native ${status.native_step}/${status.target}, THRML ${status.thrml_step}/${status.target}`, 'info');
+                    setTimeout(checkSimulationProgress, 2000);
+                } else if (status.complete) {
+                    showStatus('Both simulations complete! Ready for time-travel!', 'success');
+                    maxStep = Math.min(status.native_max, status.thrml_max);
+                    document.getElementById('maxStepDisplay').textContent = maxStep;
+                    document.getElementById('maxLabel').textContent = maxStep;
+                    document.getElementById('thrmlHistory').textContent = status.thrml_max;
+                }
+            } catch (error) {
+                showStatus('Server error checking progress', 'error');
+            }
+        }
+
+        // Reset both
+        document.getElementById('resetBoth').addEventListener('click', async () => {
+            isPlaying = false;
+            currentTimelineStep = 0;
+
+            try {
+                await fetch('http://localhost:5002/api/reset', { method: 'POST' });
+                showStatus('Both simulations reset', 'success');
+
+                // Clear local history
+                nativeHistory.length = 0;
+                nativeSimStep = 0;
+            } catch (error) {
+                showStatus('Reset failed', 'error');
+            }
+
+            jumpToStep(0);
+            updatePlayButton();
+        });
+
+        // Presets
+        document.querySelectorAll('.preset').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                params.F = parseFloat(this.dataset.f);
+                params.k = parseFloat(this.dataset.k);
+
+                try {
+                    await fetch('http://localhost:5002/api/params', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ F: params.F, k: params.k })
+                    });
+                    await fetch('http://localhost:5002/api/reset', { method: 'POST' });
+                    showStatus(`Preset applied: ${this.textContent}`, 'success');
+                } catch (error) {
+                    showStatus('Failed to update server', 'error');
+                }
+
+                jumpToStep(0);
+            });
+        });
+
+        // Status message helper
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + type;
+            statusEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Initialize
+        jumpToStep(0);
+        animate(0);
+
+        // Check dual server on load and poll for status
+        let hasShownReadyMessage = false;
+
+        async function pollServerStatus() {
+            try {
+                const response = await fetch('http://localhost:5002/api/status');
+                const status = await response.json();
+
+                thrmlMaxStep = status.thrml_max;
+                maxStep = Math.min(status.native_max, status.thrml_max);
+
+                document.getElementById('thrmlHistory').textContent = thrmlMaxStep;
+                document.getElementById('maxStepDisplay').textContent = maxStep;
+                document.getElementById('maxLabel').textContent = maxStep;
+
+                if (status.complete && !hasShownReadyMessage) {
+                    showStatus('Server ready! Both simulations at 2000 steps', 'success');
+                    hasShownReadyMessage = true;
+                } else if (status.running) {
+                    showStatus(`Running: Native ${status.native_step}, THRML ${status.thrml_step}`, 'info');
+                    hasShownReadyMessage = false; // Reset for next run
+                }
+            } catch (error) {
+                showStatus('Dual server not running on localhost:5002', 'error');
+            }
+        }
+
+        // Poll every 2 seconds
+        pollServerStatus();
+        setInterval(pollServerStatus, 2000);
+    </script>
+</body>
+</html>

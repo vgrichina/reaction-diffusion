@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scrubber Test</title>
+</head>
+<body>
+    <h1>Test Scrubber</h1>
+    <canvas id="canvas" width="256" height="256" style="border: 1px solid black;"></canvas>
+    <br>
+    <input type="range" id="slider" min="0" max="100" value="0" style="width: 400px;">
+    <br>
+    <span>Step: <span id="step">0</span></span>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('slider');
+        const stepDisplay = document.getElementById('step');
+
+        slider.addEventListener('input', async function() {
+            const step = parseInt(this.value);
+            stepDisplay.textContent = step;
+
+            try {
+                // Test native API
+                const response = await fetch(`http://localhost:5002/api/native/state?step=${step}`);
+                const state = await response.json();
+
+                if (state.v_grid) {
+                    const vData = new Float32Array(state.v_grid);
+                    const imageData = ctx.createImageData(256, 256);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < vData.length; i++) {
+                        const v = vData[i];
+                        const gray = Math.floor(v * 255);
+                        data[i * 4] = gray;
+                        data[i * 4 + 1] = gray;
+                        data[i * 4 + 2] = gray;
+                        data[i * 4 + 3] = 255;
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    console.log(`Step ${step}: min=${Math.min(...vData)}, max=${Math.max(...vData)}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        // Initialize
+        slider.dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
