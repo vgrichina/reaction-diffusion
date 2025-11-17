@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gray-Scott Reaction-Diffusion - Native JS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 2em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 30px;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        /* Timeline Controls */
+        .timeline-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .timeline-header h3 {
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .timeline-info {
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .playback-controls {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .playback-controls button {
+            padding: 12px 8px;
+            font-size: 1.2em;
+        }
+
+        .timeline-slider-container {
+            margin-bottom: 15px;
+        }
+
+        .timeline-slider {
+            width: 100%;
+            height: 40px;
+            background: #e2e8f0;
+            border-radius: 8px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            position: relative;
+            transition: width 0.1s ease;
+        }
+
+        .timeline-thumb {
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .speed-control {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .speed-btn {
+            padding: 6px;
+            font-size: 0.8em;
+            background: #e2e8f0;
+            color: #333;
+        }
+
+        .speed-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Regular Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .control-section h3 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.preset {
+            background: #48bb78;
+        }
+
+        button.preset:hover {
+            background: #38a169;
+        }
+
+        button.reset {
+            background: #f56565;
+        }
+
+        button.reset:hover {
+            background: #e53e3e;
+        }
+
+        .slider-control {
+            margin-bottom: 12px;
+        }
+
+        .slider-control label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .slider-control .value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5568d3;
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .pattern-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stat {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .info-box {
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #234e52;
+        }
+
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gray-Scott Reaction-Diffusion <span class="badge">Native JS</span></h1>
+        <p class="subtitle">Real-time simulation with time-travel capability</p>
+
+        <div class="main-content">
+            <div class="canvas-section">
+                <div class="canvas-container">
+                    <canvas id="canvas"></canvas>
+                </div>
+
+                <!-- Timeline Controls -->
+                <div class="timeline-section">
+                    <div class="timeline-header">
+                        <h3>Timeline</h3>
+                        <span class="timeline-info" id="timelineInfo">0 / 0</span>
+                    </div>
+
+                    <div class="playback-controls">
+                        <button id="stepBackward" title="Step Backward">◄</button>
+                        <button id="playBackward" title="Play Backward">◄◄</button>
+                        <button id="playPause" title="Play/Pause">▶</button>
+                        <button id="playForward" title="Play Forward">▶▶</button>
+                        <button id="stepForward" title="Step Forward">►</button>
+                    </div>
+
+                    <div class="timeline-slider-container">
+                        <div class="timeline-slider" id="timelineSlider">
+                            <div class="timeline-progress" id="timelineProgress">
+                                <div class="timeline-thumb"></div>
+                            </div>
+                        </div>
+                        <div class="timeline-labels">
+                            <span>0</span>
+                            <span id="maxStepLabel">0</span>
+                        </div>
+                    </div>
+
+                    <div class="speed-control">
+                        <button class="speed-btn" data-speed="0.25">0.25x</button>
+                        <button class="speed-btn active" data-speed="1">1x</button>
+                        <button class="speed-btn" data-speed="2">2x</button>
+                        <button class="speed-btn" data-speed="4">4x</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-section">
+                    <h3>Simulation</h3>
+                    <div class="button-group">
+                        <button id="reset" class="reset">Reset</button>
+                        <button id="clear" class="reset">Clear</button>
+                    </div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-label">FPS</div>
+                            <div class="stat-value" id="fps">60</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Step</div>
+                            <div class="stat-value" id="currentStep">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">History</div>
+                            <div class="stat-value" id="historySize">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Pattern Presets</h3>
+                    <div class="pattern-buttons">
+                        <button class="preset" data-f="0.055" data-k="0.062">Spots</button>
+                        <button class="preset" data-f="0.035" data-k="0.060">Stripes</button>
+                        <button class="preset" data-f="0.014" data-k="0.054">Spirals</button>
+                        <button class="preset" data-f="0.039" data-k="0.058">Worms</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Parameters</h3>
+
+                    <div class="slider-control">
+                        <label>
+                            <span>Feed Rate (F)</span>
+                            <span class="value" id="fValue">0.055</span>
+                        </label>
+                        <input type="range" id="fSlider" min="0" max="0.1" step="0.001" value="0.055">
+                    </div>
+
+                    <div class="slider-control">
+                        <label>
+                            <span>Kill Rate (k)</span>
+                            <span class="value" id="kValue">0.062</span>
+                        </label>
+                        <input type="range" id="kSlider" min="0" max="0.1" step="0.001" value="0.062">
+                    </div>
+
+                    <div class="slider-control">
+                        <label>
+                            <span>Diffusion U (Du)</span>
+                            <span class="value" id="duValue">0.16</span>
+                        </label>
+                        <input type="range" id="duSlider" min="0.01" max="0.3" step="0.01" value="0.16">
+                    </div>
+
+                    <div class="slider-control">
+                        <label>
+                            <span>Diffusion V (Dv)</span>
+                            <span class="value" id="dvValue">0.08</span>
+                        </label>
+                        <input type="range" id="dvSlider" min="0.01" max="0.3" step="0.01" value="0.08">
+                    </div>
+
+                    <div class="slider-control">
+                        <label>
+                            <span>Brush Size</span>
+                            <span class="value" id="brushValue">10</span>
+                        </label>
+                        <input type="range" id="brushSlider" min="1" max="30" step="1" value="10">
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>Time-Travel Features:</strong><br>
+                    • Drag timeline to scrub through history<br>
+                    • Use playback controls to navigate<br>
+                    • History stores last 1000 frames<br>
+                    • Click canvas to paint while paused
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== Configuration ======
+        const WIDTH = 256;
+        const HEIGHT = 256;
+        const HISTORY_SIZE = 1000; // Ring buffer size
+
+        // ====== Canvas Setup ======
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // ====== Simulation State ======
+        let params = {
+            Du: 0.16,
+            Dv: 0.08,
+            F: 0.055,
+            k: 0.062,
+            dt: 1.0,
+            brushSize: 10
+        };
+
+        let U = new Float32Array(WIDTH * HEIGHT);
+        let V = new Float32Array(WIDTH * HEIGHT);
+        let U_next = new Float32Array(WIDTH * HEIGHT);
+        let V_next = new Float32Array(WIDTH * HEIGHT);
+
+        // ====== History Management (Ring Buffer) ======
+        class SimulationHistory {
+            constructor(maxSize) {
+                this.maxSize = maxSize;
+                this.buffer = []; // Array of {u: Float32Array, v: Float32Array}
+                this.currentIndex = 0;
+            }
+
+            addFrame(u, v) {
+                const frame = {
+                    u: new Float32Array(u),
+                    v: new Float32Array(v)
+                };
+
+                if (this.buffer.length < this.maxSize) {
+                    this.buffer.push(frame);
+                    this.currentIndex = this.buffer.length - 1;
+                } else {
+                    // Ring buffer: overwrite oldest
+                    const insertIndex = this.currentIndex % this.maxSize;
+                    this.buffer[insertIndex] = frame;
+                }
+            }
+
+            getFrame(index) {
+                if (index < 0 || index >= this.buffer.length) return null;
+                return this.buffer[index];
+            }
+
+            getSize() {
+                return this.buffer.length;
+            }
+
+            clear() {
+                this.buffer = [];
+                this.currentIndex = 0;
+            }
+        }
+
+        const history = new SimulationHistory(HISTORY_SIZE);
+
+        // ====== Timeline State ======
+        let timelineState = {
+            isPlaying: false,
+            playDirection: 1, // 1 = forward, -1 = backward, 0 = paused
+            playbackSpeed: 1.0,
+            currentStep: 0,
+            maxStep: 0,
+            isLiveMode: true // When true, we're computing new frames
+        };
+
+        // ====== Performance Tracking ======
+        let fps = 60;
+        let lastFrameTime = Date.now();
+
+        // ====== Initialize ======
+        function initialize() {
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U[i] = 1.0;
+                V[i] = 0.0;
+            }
+
+            // Stripes pattern
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    if (x % 20 < 3) {
+                        const idx = y * WIDTH + x;
+                        U[idx] = 0.0;
+                        V[idx] = 1.0;
+                    }
+                }
+            }
+
+            history.clear();
+            history.addFrame(U, V);
+            timelineState.currentStep = 0;
+            timelineState.maxStep = 0;
+            timelineState.isLiveMode = true;
+            updateTimeline();
+        }
+
+        // ====== Simulation Step ======
+        function laplacian(arr, x, y) {
+            const idx = y * WIDTH + x;
+            const c = arr[idx];
+
+            const n = arr[((y - 1 + HEIGHT) % HEIGHT) * WIDTH + x];
+            const s = arr[((y + 1) % HEIGHT) * WIDTH + x];
+            const e = arr[y * WIDTH + ((x + 1) % WIDTH)];
+            const w = arr[y * WIDTH + ((x - 1 + WIDTH) % WIDTH)];
+
+            return (n + s + e + w - 4 * c);
+        }
+
+        function computeStep() {
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    const idx = y * WIDTH + x;
+                    const u = U[idx];
+                    const v = V[idx];
+
+                    const lapU = laplacian(U, x, y);
+                    const lapV = laplacian(V, x, y);
+                    const uvv = u * v * v;
+
+                    U_next[idx] = u + params.dt * (
+                        params.Du * lapU - uvv + params.F * (1 - u)
+                    );
+
+                    V_next[idx] = v + params.dt * (
+                        params.Dv * lapV + uvv - (params.F + params.k) * v
+                    );
+
+                    U_next[idx] = Math.max(0, Math.min(1, U_next[idx]));
+                    V_next[idx] = Math.max(0, Math.min(1, V_next[idx]));
+                }
+            }
+
+            [U, U_next] = [U_next, U];
+            [V, V_next] = [V_next, V];
+
+            // Add to history
+            history.addFrame(U, V);
+            timelineState.maxStep++;
+            timelineState.currentStep = timelineState.maxStep;
+        }
+
+        // ====== Rendering ======
+        function render() {
+            const imageData = ctx.createImageData(WIDTH, HEIGHT);
+            const data = imageData.data;
+
+            // Get current frame to render
+            let renderU, renderV;
+            if (timelineState.isLiveMode || timelineState.currentStep === history.getSize() - 1) {
+                renderU = U;
+                renderV = V;
+            } else {
+                const frame = history.getFrame(timelineState.currentStep);
+                if (frame) {
+                    renderU = frame.u;
+                    renderV = frame.v;
+                } else {
+                    renderU = U;
+                    renderV = V;
+                }
+            }
+
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                const v = renderV[i];
+
+                // Plasma colormap
+                let r, g, b;
+                if (v < 0.5) {
+                    const t = v * 2;
+                    r = Math.floor(13 + (128 - 13) * t);
+                    g = Math.floor(8 + (55 - 8) * t);
+                    b = Math.floor(135 + (188 - 135) * t);
+                } else {
+                    const t = (v - 0.5) * 2;
+                    r = Math.floor(128 + (253 - 128) * t);
+                    g = Math.floor(55 + (231 - 55) * t);
+                    b = Math.floor(188 + (37 - 188) * t);
+                }
+
+                data[i * 4] = r;
+                data[i * 4 + 1] = g;
+                data[i * 4 + 2] = b;
+                data[i * 4 + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // Update stats
+            const now = Date.now();
+            const delta = now - lastFrameTime;
+            if (delta > 0) {
+                fps = Math.round(1000 / delta);
+                document.getElementById('fps').textContent = fps;
+            }
+            lastFrameTime = now;
+
+            document.getElementById('currentStep').textContent = timelineState.currentStep;
+            document.getElementById('historySize').textContent = history.getSize();
+        }
+
+        // ====== Timeline UI ======
+        function updateTimeline() {
+            const percent = timelineState.maxStep > 0
+                ? (timelineState.currentStep / timelineState.maxStep) * 100
+                : 0;
+            document.getElementById('timelineProgress').style.width = percent + '%';
+            document.getElementById('timelineInfo').textContent =
+                `${timelineState.currentStep} / ${timelineState.maxStep}`;
+            document.getElementById('maxStepLabel').textContent = timelineState.maxStep;
+        }
+
+        // ====== Animation Loop ======
+        let frameSkip = 0;
+        function animate() {
+            // Handle playback
+            if (timelineState.isPlaying) {
+                frameSkip++;
+                const skipInterval = Math.max(1, Math.floor(1 / timelineState.playbackSpeed));
+
+                if (frameSkip >= skipInterval) {
+                    frameSkip = 0;
+
+                    if (timelineState.playDirection === 1) {
+                        // Playing forward
+                        if (timelineState.isLiveMode) {
+                            computeStep();
+                        } else if (timelineState.currentStep < timelineState.maxStep) {
+                            timelineState.currentStep++;
+                        } else {
+                            // Reached end of history, switch to live mode
+                            timelineState.isLiveMode = true;
+                            computeStep();
+                        }
+                    } else if (timelineState.playDirection === -1) {
+                        // Playing backward
+                        if (timelineState.currentStep > 0) {
+                            timelineState.currentStep--;
+                            timelineState.isLiveMode = false;
+                        } else {
+                            // Reached beginning, pause
+                            timelineState.isPlaying = false;
+                            timelineState.playDirection = 0;
+                        }
+                    }
+
+                    updateTimeline();
+                }
+            }
+
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        // ====== Mouse Interaction ======
+        let isDrawing = false;
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = WIDTH / rect.width;
+            const scaleY = HEIGHT / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+            return { x, y };
+        }
+
+        function drawChemical(x, y) {
+            const brushSize = params.brushSize;
+            for (let dy = -brushSize; dy <= brushSize; dy++) {
+                for (let dx = -brushSize; dx <= brushSize; dx++) {
+                    if (dx * dx + dy * dy <= brushSize * brushSize) {
+                        const px = (x + dx + WIDTH) % WIDTH;
+                        const py = (y + dy + HEIGHT) % HEIGHT;
+                        const idx = py * WIDTH + px;
+                        U[idx] = 0.0;
+                        V[idx] = 1.0;
+                    }
+                }
+            }
+
+            // If we're in history mode, this invalidates future frames
+            if (!timelineState.isLiveMode) {
+                // Truncate history at current point
+                history.buffer.length = timelineState.currentStep + 1;
+                timelineState.maxStep = timelineState.currentStep;
+                timelineState.isLiveMode = true;
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const { x, y } = getCanvasCoords(e);
+            drawChemical(x, y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                const { x, y } = getCanvasCoords(e);
+                drawChemical(x, y);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const touch = e.touches[0];
+            const { x, y } = getCanvasCoords(touch);
+            drawChemical(x, y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDrawing) {
+                const touch = e.touches[0];
+                const { x, y } = getCanvasCoords(touch);
+                drawChemical(x, y);
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isDrawing = false;
+        });
+
+        // ====== Timeline Controls ======
+        document.getElementById('playPause').addEventListener('click', function() {
+            timelineState.isPlaying = !timelineState.isPlaying;
+            if (timelineState.isPlaying) {
+                timelineState.playDirection = 1;
+                this.textContent = '⏸';
+            } else {
+                timelineState.playDirection = 0;
+                this.textContent = '▶';
+            }
+        });
+
+        document.getElementById('playForward').addEventListener('click', function() {
+            timelineState.isPlaying = true;
+            timelineState.playDirection = 1;
+            document.getElementById('playPause').textContent = '⏸';
+        });
+
+        document.getElementById('playBackward').addEventListener('click', function() {
+            timelineState.isPlaying = true;
+            timelineState.playDirection = -1;
+            timelineState.isLiveMode = false;
+            document.getElementById('playPause').textContent = '⏸';
+        });
+
+        document.getElementById('stepForward').addEventListener('click', () => {
+            timelineState.isPlaying = false;
+            timelineState.playDirection = 0;
+            if (timelineState.currentStep < timelineState.maxStep) {
+                timelineState.currentStep++;
+                timelineState.isLiveMode = false;
+            } else {
+                timelineState.isLiveMode = true;
+                computeStep();
+            }
+            updateTimeline();
+            document.getElementById('playPause').textContent = '▶';
+        });
+
+        document.getElementById('stepBackward').addEventListener('click', () => {
+            timelineState.isPlaying = false;
+            timelineState.playDirection = 0;
+            if (timelineState.currentStep > 0) {
+                timelineState.currentStep--;
+                timelineState.isLiveMode = false;
+            }
+            updateTimeline();
+            document.getElementById('playPause').textContent = '▶';
+        });
+
+        // Timeline scrubber
+        const timelineSlider = document.getElementById('timelineSlider');
+        let isScrubbing = false;
+
+        function scrubToPosition(clientX) {
+            const rect = timelineSlider.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const targetStep = Math.floor(percent * timelineState.maxStep);
+
+            timelineState.currentStep = targetStep;
+            timelineState.isLiveMode = (targetStep === timelineState.maxStep);
+            updateTimeline();
+        }
+
+        timelineSlider.addEventListener('mousedown', (e) => {
+            isScrubbing = true;
+            timelineState.isPlaying = false;
+            timelineState.playDirection = 0;
+            document.getElementById('playPause').textContent = '▶';
+            scrubToPosition(e.clientX);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isScrubbing) {
+                scrubToPosition(e.clientX);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isScrubbing = false;
+        });
+
+        // Speed controls
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                timelineState.playbackSpeed = parseFloat(this.dataset.speed);
+            });
+        });
+
+        // ====== Regular Controls ======
+        document.getElementById('reset').addEventListener('click', () => {
+            initialize();
+        });
+
+        document.getElementById('clear').addEventListener('click', () => {
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U[i] = 1.0;
+                V[i] = 0.0;
+            }
+            history.clear();
+            history.addFrame(U, V);
+            timelineState.currentStep = 0;
+            timelineState.maxStep = 0;
+            timelineState.isLiveMode = true;
+            updateTimeline();
+        });
+
+        // Parameter controls
+        const fSlider = document.getElementById('fSlider');
+        const kSlider = document.getElementById('kSlider');
+        const duSlider = document.getElementById('duSlider');
+        const dvSlider = document.getElementById('dvSlider');
+        const brushSlider = document.getElementById('brushSlider');
+
+        fSlider.addEventListener('input', function() {
+            params.F = parseFloat(this.value);
+            document.getElementById('fValue').textContent = params.F.toFixed(3);
+        });
+
+        kSlider.addEventListener('input', function() {
+            params.k = parseFloat(this.value);
+            document.getElementById('kValue').textContent = params.k.toFixed(3);
+        });
+
+        duSlider.addEventListener('input', function() {
+            params.Du = parseFloat(this.value);
+            document.getElementById('duValue').textContent = params.Du.toFixed(2);
+        });
+
+        dvSlider.addEventListener('input', function() {
+            params.Dv = parseFloat(this.value);
+            document.getElementById('dvValue').textContent = params.Dv.toFixed(2);
+        });
+
+        brushSlider.addEventListener('input', function() {
+            params.brushSize = parseInt(this.value);
+            document.getElementById('brushValue').textContent = params.brushSize;
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.preset').forEach(button => {
+            button.addEventListener('click', function() {
+                params.F = parseFloat(this.dataset.f);
+                params.k = parseFloat(this.dataset.k);
+
+                fSlider.value = params.F;
+                kSlider.value = params.k;
+                document.getElementById('fValue').textContent = params.F.toFixed(3);
+                document.getElementById('kValue').textContent = params.k.toFixed(3);
+
+                initialize();
+            });
+        });
+
+        // ====== Start ======
+        initialize();
+        animate();
+    </script>
+</body>
+</html>

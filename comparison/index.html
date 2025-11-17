@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction-Diffusion Comparison: THRML vs Native JS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 0.95em;
+            text-align: center;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .implementation {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .implementation.native {
+            border-color: #48bb78;
+        }
+
+        .implementation.thrml {
+            border-color: #764ba2;
+        }
+
+        .impl-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .implementation.native .impl-header {
+            background: #f0fff4;
+            border-bottom-color: #48bb78;
+        }
+
+        .implementation.thrml .impl-header {
+            background: #f3ebfa;
+            border-bottom-color: #764ba2;
+        }
+
+        .impl-header h2 {
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .impl-subtitle {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .canvas-container {
+            background: #000;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .stats-bar {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        .implementation.native .stat-value {
+            color: #48bb78;
+        }
+
+        .implementation.thrml .stat-value {
+            color: #764ba2;
+        }
+
+        .controls-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-group h3 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        button.preset {
+            background: #48bb78;
+        }
+
+        button.preset:hover {
+            background: #38a169;
+        }
+
+        button.reset {
+            background: #f56565;
+        }
+
+        button.reset:hover {
+            background: #e53e3e;
+        }
+
+        .slider-control {
+            margin-bottom: 12px;
+        }
+
+        .slider-control label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .slider-control .value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        td {
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .badge.good {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge.neutral {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reaction-Diffusion Implementation Comparison</h1>
+        <p class="subtitle">Native JavaScript vs THRML Server - Side by Side</p>
+
+        <div class="comparison-grid">
+            <!-- Native JS Implementation -->
+            <div class="implementation native">
+                <div class="impl-header">
+                    <h2>Native JavaScript</h2>
+                    <p class="impl-subtitle">Client-side simulation with ring buffer</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="canvasNative" width="256" height="256"></canvas>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat">
+                        <div class="stat-label">FPS</div>
+                        <div class="stat-value" id="fpsNative">--</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Latency</div>
+                        <div class="stat-value">0ms</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">History</div>
+                        <div class="stat-value" id="historyNative">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Step</div>
+                        <div class="stat-value" id="stepNative">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- THRML Server Implementation -->
+            <div class="implementation thrml">
+                <div class="impl-header">
+                    <h2>THRML Server</h2>
+                    <p class="impl-subtitle">Server-side with unlimited history</p>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="canvasTHRML" width="256" height="256"></canvas>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat">
+                        <div class="stat-label">FPS</div>
+                        <div class="stat-value" id="fpsTHRML">--</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Latency</div>
+                        <div class="stat-value" id="latencyTHRML">--ms</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">History</div>
+                        <div class="stat-value">∞</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Step</div>
+                        <div class="stat-value" id="stepTHRML">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unified Controls -->
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <h3>Simulation Control</h3>
+                    <div class="button-group">
+                        <button id="playPause">Play Both</button>
+                        <button id="reset" class="reset">Reset Both</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Pattern Presets</h3>
+                    <div class="button-group">
+                        <button class="preset" data-f="0.055" data-k="0.062">Spots</button>
+                        <button class="preset" data-f="0.035" data-k="0.060">Stripes</button>
+                        <button class="preset" data-f="0.014" data-k="0.054">Spirals</button>
+                        <button class="preset" data-f="0.039" data-k="0.058">Worms</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Parameters</h3>
+                    <div class="slider-control">
+                        <label>
+                            <span>Feed Rate (F)</span>
+                            <span class="value" id="fValue">0.055</span>
+                        </label>
+                        <input type="range" id="fSlider" min="0" max="0.1" step="0.001" value="0.055">
+                    </div>
+                    <div class="slider-control">
+                        <label>
+                            <span>Kill Rate (k)</span>
+                            <span class="value" id="kValue">0.062</span>
+                        </label>
+                        <input type="range" id="kSlider" min="0" max="0.1" step="0.001" value="0.062">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Native JS</th>
+                            <th>THRML Server</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Latency</td>
+                            <td><span class="badge good">0ms</span></td>
+                            <td><span class="badge neutral" id="serverLatency">~50-100ms</span></td>
+                        </tr>
+                        <tr>
+                            <td>History</td>
+                            <td>Last 1000 frames</td>
+                            <td><span class="badge good">Unlimited</span></td>
+                        </tr>
+                        <tr>
+                            <td>Deployment</td>
+                            <td><span class="badge good">Static files</span></td>
+                            <td>Requires server</td>
+                        </tr>
+                        <tr>
+                            <td>GPU Support</td>
+                            <td>No</td>
+                            <td><span class="badge good">Yes (JAX)</span></td>
+                        </tr>
+                        <tr>
+                            <td>Offline</td>
+                            <td><span class="badge good">Yes</span></td>
+                            <td>No</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Note: This is a simplified comparison that runs both implementations
+        // For THRML server, you need to run the server at localhost:5000
+
+        const WIDTH = 256;
+        const HEIGHT = 256;
+
+        // Native JS simulation (simplified from native-js/index.html)
+        const canvasNative = document.getElementById('canvasNative');
+        const ctxNative = canvasNative.getContext('2d');
+
+        let U_native = new Float32Array(WIDTH * HEIGHT);
+        let V_native = new Float32Array(WIDTH * HEIGHT);
+        let U_next_native = new Float32Array(WIDTH * HEIGHT);
+        let V_next_native = new Float32Array(WIDTH * HEIGHT);
+
+        let params = {
+            Du: 0.16,
+            Dv: 0.08,
+            F: 0.055,
+            k: 0.062,
+            dt: 1.0
+        };
+
+        let isRunning = true;
+        let stepCountNative = 0;
+        let fpsNative = 0;
+        let lastFrameNative = Date.now();
+
+        // Initialize native
+        function initNative() {
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                U_native[i] = 1.0;
+                V_native[i] = 0.0;
+            }
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    if (x % 20 < 3) {
+                        const idx = y * WIDTH + x;
+                        U_native[idx] = 0.0;
+                        V_native[idx] = 1.0;
+                    }
+                }
+            }
+            stepCountNative = 0;
+        }
+
+        function laplacian(arr, x, y) {
+            const idx = y * WIDTH + x;
+            const c = arr[idx];
+            const n = arr[((y - 1 + HEIGHT) % HEIGHT) * WIDTH + x];
+            const s = arr[((y + 1) % HEIGHT) * WIDTH + x];
+            const e = arr[y * WIDTH + ((x + 1) % WIDTH)];
+            const w = arr[y * WIDTH + ((x - 1 + WIDTH) % WIDTH)];
+            return (n + s + e + w - 4 * c);
+        }
+
+        function stepNative() {
+            for (let y = 0; y < HEIGHT; y++) {
+                for (let x = 0; x < WIDTH; x++) {
+                    const idx = y * WIDTH + x;
+                    const u = U_native[idx];
+                    const v = V_native[idx];
+                    const lapU = laplacian(U_native, x, y);
+                    const lapV = laplacian(V_native, x, y);
+                    const uvv = u * v * v;
+
+                    U_next_native[idx] = u + params.dt * (
+                        params.Du * lapU - uvv + params.F * (1 - u)
+                    );
+                    V_next_native[idx] = v + params.dt * (
+                        params.Dv * lapV + uvv - (params.F + params.k) * v
+                    );
+
+                    U_next_native[idx] = Math.max(0, Math.min(1, U_next_native[idx]));
+                    V_next_native[idx] = Math.max(0, Math.min(1, V_next_native[idx]));
+                }
+            }
+            [U_native, U_next_native] = [U_next_native, U_native];
+            [V_native, V_next_native] = [V_next_native, V_native];
+            stepCountNative++;
+        }
+
+        function renderNative() {
+            const imageData = ctxNative.createImageData(WIDTH, HEIGHT);
+            const data = imageData.data;
+
+            for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                const v = V_native[i];
+                let r, g, b;
+                if (v < 0.5) {
+                    const t = v * 2;
+                    r = Math.floor(13 + (128 - 13) * t);
+                    g = Math.floor(8 + (55 - 8) * t);
+                    b = Math.floor(135 + (188 - 135) * t);
+                } else {
+                    const t = (v - 0.5) * 2;
+                    r = Math.floor(128 + (253 - 128) * t);
+                    g = Math.floor(55 + (231 - 55) * t);
+                    b = Math.floor(188 + (37 - 188) * t);
+                }
+                data[i * 4] = r;
+                data[i * 4 + 1] = g;
+                data[i * 4 + 2] = b;
+                data[i * 4 + 3] = 255;
+            }
+
+            ctxNative.putImageData(imageData, 0, 0);
+
+            const now = Date.now();
+            if (now - lastFrameNative > 0) {
+                fpsNative = Math.round(1000 / (now - lastFrameNative));
+                document.getElementById('fpsNative').textContent = fpsNative;
+            }
+            lastFrameNative = now;
+            document.getElementById('stepNative').textContent = stepCountNative;
+            document.getElementById('historyNative').textContent = '1000';
+        }
+
+        function animateNative() {
+            if (isRunning) {
+                stepNative();
+            }
+            renderNative();
+            requestAnimationFrame(animateNative);
+        }
+
+        // THRML Server simulation (polling)
+        const canvasTHRML = document.getElementById('canvasTHRML');
+        const ctxTHRML = canvasTHRML.getContext('2d');
+
+        let latencyTHRML = 0;
+        let fpsTHRML = 0;
+        let lastFrameTHRML = Date.now();
+
+        async function pollTHRML() {
+            try {
+                const start = Date.now();
+                const response = await fetch('http://localhost:5000/api/state');
+                latencyTHRML = Date.now() - start;
+                document.getElementById('latencyTHRML').textContent = latencyTHRML + 'ms';
+                document.getElementById('serverLatency').textContent = `~${latencyTHRML}ms`;
+
+                const state = await response.json();
+
+                if (state.v_grid) {
+                    const imageData = ctxTHRML.createImageData(WIDTH, HEIGHT);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < WIDTH * HEIGHT; i++) {
+                        const v = state.v_grid[i];
+                        let r, g, b;
+                        if (v < 0.5) {
+                            const t = v * 2;
+                            r = Math.floor(13 + (128 - 13) * t);
+                            g = Math.floor(8 + (55 - 8) * t);
+                            b = Math.floor(135 + (188 - 135) * t);
+                        } else {
+                            const t = (v - 0.5) * 2;
+                            r = Math.floor(128 + (253 - 128) * t);
+                            g = Math.floor(55 + (231 - 55) * t);
+                            b = Math.floor(188 + (37 - 188) * t);
+                        }
+                        data[i * 4] = r;
+                        data[i * 4 + 1] = g;
+                        data[i * 4 + 2] = b;
+                        data[i * 4 + 3] = 255;
+                    }
+
+                    ctxTHRML.putImageData(imageData, 0, 0);
+
+                    const now = Date.now();
+                    if (now - lastFrameTHRML > 0) {
+                        fpsTHRML = Math.round(1000 / (now - lastFrameTHRML));
+                        document.getElementById('fpsTHRML').textContent = fpsTHRML;
+                    }
+                    lastFrameTHRML = now;
+                    document.getElementById('stepTHRML').textContent = state.step || 0;
+                }
+            } catch (error) {
+                console.error('THRML server not available:', error);
+                ctxTHRML.fillStyle = '#333';
+                ctxTHRML.fillRect(0, 0, WIDTH, HEIGHT);
+                ctxTHRML.fillStyle = 'white';
+                ctxTHRML.font = '14px sans-serif';
+                ctxTHRML.textAlign = 'center';
+                ctxTHRML.fillText('THRML Server', WIDTH / 2, HEIGHT / 2 - 10);
+                ctxTHRML.fillText('Not Running', WIDTH / 2, HEIGHT / 2 + 10);
+                ctxTHRML.fillText('Start server: python server.py', WIDTH / 2, HEIGHT / 2 + 30);
+            }
+        }
+
+        // Controls
+        document.getElementById('playPause').addEventListener('click', function() {
+            isRunning = !isRunning;
+            this.textContent = isRunning ? 'Pause Both' : 'Play Both';
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            initNative();
+            fetch('http://localhost:5000/api/reset', { method: 'POST' }).catch(() => {});
+        });
+
+        // Presets
+        document.querySelectorAll('.preset').forEach(btn => {
+            btn.addEventListener('click', function() {
+                params.F = parseFloat(this.dataset.f);
+                params.k = parseFloat(this.dataset.k);
+                document.getElementById('fSlider').value = params.F;
+                document.getElementById('kSlider').value = params.k;
+                document.getElementById('fValue').textContent = params.F.toFixed(3);
+                document.getElementById('kValue').textContent = params.k.toFixed(3);
+
+                initNative();
+                fetch('http://localhost:5000/api/params', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ F: params.F, k: params.k })
+                }).catch(() => {});
+                fetch('http://localhost:5000/api/reset', { method: 'POST' }).catch(() => {});
+            });
+        });
+
+        // Sliders
+        document.getElementById('fSlider').addEventListener('input', function() {
+            params.F = parseFloat(this.value);
+            document.getElementById('fValue').textContent = params.F.toFixed(3);
+        });
+
+        document.getElementById('kSlider').addEventListener('input', function() {
+            params.k = parseFloat(this.value);
+            document.getElementById('kValue').textContent = params.k.toFixed(3);
+        });
+
+        // Initialize
+        initNative();
+        animateNative();
+        setInterval(pollTHRML, 100); // Poll THRML server at 10Hz
+    </script>
+</body>
+</html>
