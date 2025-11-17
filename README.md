@@ -1,46 +1,19 @@
-# Gray-Scott Reaction-Diffusion: Interactive Web Implementations
+# Gray-Scott Reaction-Diffusion with THRML
 
-Two implementations of the Gray-Scott reaction-diffusion model with **time-travel capabilities**:
-
-1. **Native JavaScript** - Client-side simulation with ring buffer history
-2. **THRML Server** - Server-side THRML implementation with unlimited history
+Interactive web-based Gray-Scott reaction-diffusion simulation powered by **THRML** (Thermal), showcasing unlimited history and perfect time-travel capabilities.
 
 ## Features
 
-- **Time-Travel UI**: Scrub through simulation history
-- **Playback Controls**: Play forward/backward, step through frames
-- **Interactive Painting**: Click to add chemicals
-- **Pattern Presets**: Spots, Stripes, Spirals, Worms
-- **Parameter Control**: Adjust F, k, Du, Dv in real-time
+- **Unlimited History**: Every simulation step is permanently stored
+- **Perfect Time-Travel**: Scrub through the entire simulation timeline
+- **JAX-Powered**: Hardware-accelerated computation with JIT compilation
+- **Factor Graph Model**: Probabilistic graphical model implementation
+- **Interactive Controls**: Real-time parameter adjustment and pattern exploration
+- **Playback Controls**: Play, pause, step through frames at any speed
 
 ---
 
-## 1. Native JavaScript Version
-
-### Quick Start
-
-```bash
-cd native-js
-# Open index.html in your browser (or use a local server)
-python3 -m http.server 8000
-# Visit http://localhost:8000
-```
-
-### Features
-- ✅ Zero latency (runs in browser)
-- ✅ Works offline
-- ✅ 256x256 grid at 60 FPS
-- ✅ Ring buffer stores last 1000 frames
-- ✅ No dependencies
-
-### Time-Travel
-- History: Last 1000 frames in memory
-- Scrubbing: Instant, zero latency
-- Limitations: Can't go back beyond ring buffer
-
----
-
-## 2. THRML Server Version
+## Quick Start
 
 ### Installation
 
@@ -55,50 +28,26 @@ pip install -r requirements.txt
 python server.py
 ```
 
-Server runs on `http://localhost:5000`
+Server runs on `http://localhost:5001`
 
-### Features
-- ✅ Unlimited history (THRML stores all frames)
-- ✅ JAX-accelerated computation
-- ✅ GPU support (if JAX configured with CUDA)
-- ✅ 256x256 grid at ~30 FPS
-- ✅ Complete timeline available
-
-### API Endpoints
-
-```
-GET  /api/state?step=N      # Get specific timestep
-POST /api/params            # Update parameters
-POST /api/reset             # Reset simulation
-POST /api/interact          # Add chemicals
-GET  /api/history           # Get frame range
-POST /api/simulate          # Run N steps
-```
-
-### Time-Travel
-- History: Unlimited (all frames stored)
-- Scrubbing: Network latency (~50-100ms)
-- Advantages: Can scrub to ANY point since start
+Open your browser and start exploring!
 
 ---
 
-## Comparison
+## What is THRML?
 
-| Feature | Native JS | THRML Server |
-|---------|-----------|--------------|
-| **Latency** | 0ms | ~50-100ms |
-| **Grid Size** | 256x256 | 256x512+ |
-| **History** | 1000 frames | Unlimited |
-| **GPU** | No | Yes (JAX) |
-| **Deployment** | Static files | Server required |
-| **Offline** | Yes | No |
-| **Multi-user** | No | Possible |
+**THRML (Thermal)** is a probabilistic programming framework built on JAX that uses factor graphs and Gibbs sampling to model complex systems. This demo showcases how THRML naturally maintains complete simulation history as a byproduct of its sampling process.
+
+### Key Advantages
+
+- ✅ **Automatic History Tracking**: `sample_states()` returns complete timeline
+- ✅ **JAX Acceleration**: GPU support for faster computation
+- ✅ **Probabilistic Framework**: Factor graph representation
+- ✅ **Scalable**: Handles large grids efficiently
 
 ---
 
-## How It Works
-
-### Gray-Scott Model
+## The Gray-Scott Model
 
 The Gray-Scott reaction-diffusion model simulates two chemical species (U and V) interacting:
 
@@ -107,86 +56,114 @@ dU/dt = Du * ∇²U - U*V² + F*(1-U)
 dV/dt = Dv * ∇²V + U*V² - (F+k)*V
 ```
 
-Parameters:
-- **Du, Dv**: Diffusion rates
+**Parameters:**
+- **Du, Dv**: Diffusion rates (how fast chemicals spread)
 - **F**: Feed rate (adds U, removes V)
 - **k**: Kill rate (removes V)
 
-Different F and k values produce different patterns!
+Different F and k values produce fascinating patterns!
 
 ### Pattern Presets
 
-- **Spots**: F=0.055, k=0.062
-- **Stripes**: F=0.035, k=0.060
-- **Spirals**: F=0.014, k=0.054
-- **Worms**: F=0.039, k=0.058
+Try these parameter combinations:
 
-### THRML Implementation
+- **Spots**: F=0.055, k=0.062 (Classic Turing patterns)
+- **Stripes**: F=0.035, k=0.060 (Parallel lines)
+- **Spirals**: F=0.014, k=0.054 (Rotating patterns)
+- **Worms**: F=0.039, k=0.058 (Squirming structures)
 
-The THRML version uses:
-- **ChemicalU, ChemicalV**: Node types for each species
-- **DiffusionFactor**: Spreads chemicals to neighbors
-- **ChemicalCouplingFactor**: Links U and V at same location
-- **SelfCouplingFactor**: Provides nodes with their own state
-- **GrayScottSampler**: Implements reaction-diffusion dynamics
+---
 
-Key advantage: `sample_states()` returns complete history automatically!
+## API Endpoints
+
+The THRML server provides a RESTful API:
+
+```
+GET  /                      # Playground interface
+GET  /api/state?step=N      # Get specific timestep
+POST /api/params            # Update parameters (F, k, Du, Dv)
+POST /api/reset             # Reset simulation with pattern
+POST /api/interact          # Add chemicals at position
+POST /api/simulate          # Run N steps
+POST /api/pause             # Pause background simulation
+POST /api/resume            # Resume background simulation
+```
+
+---
+
+## THRML Implementation
+
+The simulation uses THRML's factor graph framework:
+
+- **ChemicalU, ChemicalV**: Node types for each chemical species
+- **DiffusionFactor**: Spreads chemicals to neighboring cells
+- **ChemicalCouplingFactor**: Links U and V at the same location
+- **SelfCouplingFactor**: Provides nodes with their own previous state
+- **GrayScottSampler**: Implements the reaction-diffusion dynamics
+
+**Key Innovation**: The `sample_states()` function naturally returns the complete simulation history, making time-travel a built-in feature rather than an add-on.
 
 ---
 
 ## Time-Travel Controls
 
-Both implementations feature:
+The playground features intuitive timeline controls:
 
 ```
-[◄] [◄◄] [▶] [▶▶] [►]
+[◄] [▶] [►]
 ├───────●─────────────┤  Timeline scrubber
-0     1234         5000
+0     step         max
 ```
 
 - **Play/Pause**: Auto-advance simulation
-- **Step**: Single frame forward/backward
-- **Scrub**: Drag timeline to any point
-- **Speed**: 0.25x, 1x, 2x, 4x playback
+- **Step Back/Forward**: Single frame navigation
+- **Scrubber**: Drag to any point in history
+- **Jump to Start/End**: Instant navigation
+
+---
+
+## File Structure
+
+```
+reaction-diffusion/
+├── README.md                  # This file
+├── QUICKSTART.md              # Quick start guide
+├── IMPLEMENTATION_SUMMARY.md  # Technical details
+├── demo.sh                    # Launch script
+└── thrml-server/
+    ├── server.py              # Flask HTTP server
+    ├── simulation.py          # THRML implementation
+    ├── requirements.txt       # Python dependencies
+    └── static/
+        └── thrml-playground.html  # Interactive UI
+```
 
 ---
 
 ## Development
 
-### File Structure
+### Running with Custom Port
 
-```
-reaction-diffusion/
-├── README.md                  # This file
-├── DESIGN.md                  # Architecture docs
-├── native-js/
-│   └── index.html             # Self-contained JS app
-├── thrml-server/
-│   ├── server.py              # Flask HTTP server
-│   ├── simulation.py          # THRML implementation
-│   ├── requirements.txt       # Python deps
-│   └── static/
-│       └── index.html         # Client UI
-└── comparison/
-    └── index.html             # Side-by-side (TODO)
+```bash
+PORT=8080 python server.py
 ```
 
-### Next Steps
+### Grid Size
 
-- [ ] Comparison UI (side-by-side view)
-- [ ] Export to image/video
-- [ ] 3D visualization mode
-- [ ] Multi-user collaboration
-- [ ] WebGL acceleration for JS version
-- [ ] Bookmark interesting patterns
+The default grid is 128x128. To change it, modify `server.py`:
+
+```python
+session = SimulationSession(256, 256)  # Larger grid
+```
 
 ---
 
 ## Credits
 
-Based on the THRML example: `thrml/examples/04_reaction_diffusion.ipynb`
+Based on the THRML framework and the classic Gray-Scott reaction-diffusion model.
 
-Gray-Scott model: https://groups.csail.mit.edu/mac/projects/amorphous/GrayScott/
+- THRML: Probabilistic programming with factor graphs
+- Gray-Scott Model: https://groups.csail.mit.edu/mac/projects/amorphous/GrayScott/
 
 ---
 

@@ -1,46 +1,24 @@
 #!/bin/bash
-# Quick demo launcher for Gray-Scott Reaction-Diffusion implementations
 
-echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║  Gray-Scott Reaction-Diffusion Demo Launcher             ║"
-echo "║  Two implementations with time-travel!                    ║"
-echo "╚═══════════════════════════════════════════════════════════╝"
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║   Gray-Scott Reaction-Diffusion with THRML                ║"
+echo "║   Interactive Time-Travel Simulation                      ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "🧪 THRML Playground - Unlimited History & Time-Travel"
 echo ""
 echo "Choose an option:"
 echo ""
-echo "  1) Native JavaScript (instant, no setup)"
-echo "  2) THRML Server (unlimited history, JAX-powered)"
-echo "  3) Side-by-side Comparison (both at once!)"
-echo "  4) Show info"
+echo "  1) Launch THRML Server"
+echo "  2) Show project info"
+echo "  3) Exit"
 echo ""
-read -p "Enter choice [1-4]: " choice
+read -p "Enter choice (1-3): " choice
 
 case $choice in
     1)
         echo ""
-        echo "🚀 Launching Native JavaScript version..."
-        echo ""
-        echo "✨ Features:"
-        echo "   • Zero latency"
-        echo "   • Works offline"
-        echo "   • 1000 frame time-travel buffer"
-        echo "   • Runs at 60 FPS"
-        echo ""
-        cd native-js
-        python3 -m http.server 8765 &
-        SERVER_PID=$!
-        sleep 2
-        echo "🌐 Opening http://localhost:8765"
-        echo ""
-        open "http://localhost:8765" 2>/dev/null || xdg-open "http://localhost:8765" 2>/dev/null || echo "   Visit: http://localhost:8765"
-        echo ""
-        echo "Press Ctrl+C to stop server"
-        wait $SERVER_PID
-        ;;
-
-    2)
-        echo ""
-        echo "🚀 Launching THRML Server version..."
+        echo "🚀 Launching THRML Server..."
         echo ""
 
         # Check if dependencies are installed
@@ -57,101 +35,79 @@ case $choice in
             fi
         fi
 
-        echo ""
         echo "✨ Features:"
-        echo "   • Unlimited time-travel history"
-        echo "   • JAX-accelerated (GPU capable)"
-        echo "   • Scrub to ANY historical frame"
-        echo "   • Runs at ~30 FPS"
+        echo "   • Unlimited simulation history"
+        echo "   • JAX-accelerated computation"
+        echo "   • Perfect time-travel through all steps"
+        echo "   • Factor graph implementation"
         echo ""
         cd thrml-server
-        echo "🌐 Server starting on http://localhost:5000"
+        echo "🌐 Server starting on http://localhost:5001"
         echo ""
         echo "Press Ctrl+C to stop server"
         python3 server.py
         ;;
 
-    3)
+    2)
+        clear
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║            Project Information                             ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
         echo ""
-        echo "🚀 Launching Side-by-Side Comparison..."
+        echo "This project demonstrates THRML's capabilities through an"
+        echo "interactive Gray-Scott reaction-diffusion simulation."
         echo ""
-        echo "Starting THRML server..."
-        cd thrml-server
-        python3 server.py > /dev/null 2>&1 &
-        THRML_PID=$!
-        cd ..
-
-        sleep 3
-
-        echo "Starting comparison page..."
-        cd comparison
-        python3 -m http.server 8766 &
-        COMP_PID=$!
-
-        sleep 2
+        echo "📚 What is THRML?"
+        echo "   THRML (Thermal) is a probabilistic programming framework"
+        echo "   built on JAX that uses factor graphs and Gibbs sampling"
+        echo "   to model complex systems."
         echo ""
-        echo "✨ Both implementations running!"
-        echo "   • Left: Native JS (instant)"
-        echo "   • Right: THRML Server (unlimited history)"
+        echo "🎯 Key Innovation:"
+        echo "   THRML's sample_states() function automatically preserves"
+        echo "   the complete simulation history, making time-travel a"
+        echo "   built-in feature rather than an add-on."
         echo ""
-        echo "🌐 Opening http://localhost:8766"
+        echo "🔬 Gray-Scott Model:"
+        echo "   Simulates two chemical species (U and V) with reaction"
+        echo "   and diffusion dynamics, producing fascinating patterns"
+        echo "   like spots, stripes, spirals, and worms."
         echo ""
-        open "http://localhost:8766" 2>/dev/null || xdg-open "http://localhost:8766" 2>/dev/null || echo "   Visit: http://localhost:8766"
+        echo "📁 Files:"
+        echo "   • thrml-server/simulation.py  - Factor graph implementation"
+        echo "   • thrml-server/server.py      - Flask API server"
+        echo "   • thrml-server/static/         - Interactive playground UI"
         echo ""
-        echo "Press Ctrl+C to stop both servers"
-
-        trap "kill $THRML_PID $COMP_PID 2>/dev/null" EXIT
-        wait $COMP_PID
+        echo "📖 Documentation:"
+        echo "   • README.md                    - Full documentation"
+        echo "   • QUICKSTART.md                - Quick start guide"
+        echo "   • IMPLEMENTATION_SUMMARY.md    - Technical details"
+        echo ""
+        echo "🌐 Usage:"
+        echo "   Run option 1 to start the server, then open your browser"
+        echo "   to http://localhost:5001 for the interactive playground."
+        echo ""
+        echo "💡 Try different F and k parameters to create:"
+        echo "   • Spots (F=0.055, k=0.062)"
+        echo "   • Stripes (F=0.035, k=0.060)"
+        echo "   • Spirals (F=0.014, k=0.054)"
+        echo "   • Worms (F=0.039, k=0.058)"
+        echo ""
+        read -p "Press Enter to return to menu..."
+        exec "$0"
         ;;
 
-    4)
+    3)
         echo ""
-        echo "╔═══════════════════════════════════════════════════════════╗"
-        echo "║  About Gray-Scott Reaction-Diffusion                     ║"
-        echo "╚═══════════════════════════════════════════════════════════╝"
+        echo "👋 Goodbye!"
         echo ""
-        echo "This project implements the Gray-Scott reaction-diffusion model"
-        echo "in two ways:"
-        echo ""
-        echo "1. Native JavaScript"
-        echo "   • Client-side simulation"
-        echo "   • Ring buffer (last 1000 frames)"
-        echo "   • Zero latency"
-        echo "   • File: native-js/index.html"
-        echo ""
-        echo "2. THRML Server"
-        echo "   • Server-side with THRML framework"
-        echo "   • Unlimited history"
-        echo "   • JAX-accelerated"
-        echo "   • Files: thrml-server/"
-        echo ""
-        echo "Both feature:"
-        echo "   • Time-travel timeline scrubber"
-        echo "   • Play/pause/step controls"
-        echo "   • Playback speed control"
-        echo "   • Pattern presets (spots, stripes, spirals, worms)"
-        echo "   • Interactive painting"
-        echo ""
-        echo "Time-Travel Controls:"
-        echo "   [◄] Step backward"
-        echo "   [◄◄] Play in reverse"
-        echo "   [▶] Play/Pause"
-        echo "   [▶▶] Play forward"
-        echo "   [►] Step forward"
-        echo "   Drag timeline to scrub"
-        echo ""
-        echo "Pattern Presets:"
-        echo "   • Spots: F=0.055, k=0.062"
-        echo "   • Stripes: F=0.035, k=0.060"
-        echo "   • Spirals: F=0.014, k=0.054"
-        echo "   • Worms: F=0.039, k=0.058"
-        echo ""
-        echo "For more info, see README.md"
-        echo ""
+        exit 0
         ;;
 
     *)
-        echo "Invalid choice"
-        exit 1
+        echo ""
+        echo "❌ Invalid choice. Please enter 1, 2, or 3."
+        echo ""
+        sleep 2
+        exec "$0"
         ;;
 esac

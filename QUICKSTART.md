@@ -1,111 +1,110 @@
 # Quick Start Guide
 
-## Option 1: Native JavaScript (Easiest!)
+Get up and running with the THRML Gray-Scott playground in minutes!
 
-No installation required - just open in your browser:
-
-```bash
-cd native-js
-open index.html
-# Or use a local server:
-python3 -m http.server 8000
-# Then visit: http://localhost:8000
-```
-
-**Features:**
-- Zero latency
-- Works offline
-- Time-travel with 1000 frame buffer
-- Drag timeline to scrub through history
-
----
-
-## Option 2: THRML Server (Full Power!)
-
-### Install Dependencies
+## Installation
 
 ```bash
 cd thrml-server
 pip install -r requirements.txt
 ```
 
-### Run Server
+## Run the Server
 
 ```bash
 python server.py
 ```
 
-Server starts on `http://localhost:5000`
+The server will start on `http://localhost:5001`
 
-**Features:**
-- Unlimited time-travel history
-- JAX-accelerated (GPU support)
-- Complete timeline always available
+## Using the Playground
 
----
+### 1. Choose a Pattern
 
-## Option 3: Side-by-Side Comparison
+Click one of the initial pattern buttons:
+- 📏 Stripes
+- ⬛ Center Square
+- 🎲 Random
+- ⭕ Circle
 
-### Terminal 1: Start THRML Server
+### 2. Select Parameters
 
-```bash
-cd thrml-server
-python server.py
-```
+Try one of the preset parameter combinations:
+- **Spots**: Creates classic Turing spot patterns
+- **Stripes**: Generates parallel stripe patterns
+- **Spirals**: Produces rotating spiral patterns
+- **Worms**: Creates worm-like moving structures
 
-### Terminal 2: Serve Comparison Page
+Or use the sliders to experiment with custom F (feed rate) and k (kill rate) values.
 
-```bash
-cd comparison
-python3 -m http.server 8001
-```
+### 3. Reset & Run
 
-Visit: `http://localhost:8001`
+1. Click **"Reset Simulation"** to apply your chosen pattern and parameters
+2. Click **"Run 100 Steps"** to compute 100 simulation steps
+3. Watch the pattern evolve!
 
-**See both implementations running in parallel!**
+### 4. Time Travel
 
----
-
-## Time-Travel Controls
-
-All implementations feature:
+Use the timeline controls to explore the simulation history:
 
 ```
 [◄] Step Back
-[◄◄] Play Backward
-[▶] Play/Pause
-[▶▶] Play Forward
+[▶] Play/Pause (auto-advance)
 [►] Step Forward
-
-Drag timeline slider to scrub to any point
+[⏮ Start] Jump to beginning
+[⏭ End] Jump to latest
 ```
 
----
-
-## Pattern Presets
-
-Try these parameter combinations:
-
-- **Spots**: F=0.055, k=0.062 (Classic Turing patterns)
-- **Stripes**: F=0.035, k=0.060 (Parallel lines)
-- **Spirals**: F=0.014, k=0.054 (Rotating patterns)
-- **Worms**: F=0.039, k=0.058 (Squirming structures)
+Drag the timeline slider to scrub to any point in the history!
 
 ---
 
 ## Tips
 
-1. **Native JS**: Best for immediate experimentation
-2. **THRML Server**: Best for exploring full history
-3. **Comparison**: Best for understanding differences
+- **Experiment freely**: Try different F and k combinations
+- **Use time-travel**: Scrub back to see how patterns evolved
+- **Run multiple batches**: Click "Run 100 Steps" multiple times to build longer histories
+- **Watch in real-time**: Use the Play button to auto-advance through computed steps
+
+---
+
+## Pattern Presets Explained
+
+| Pattern | F | k | What You'll See |
+|---------|---|---|-----------------|
+| **Spots** | 0.055 | 0.062 | Circular spots that form and stabilize |
+| **Stripes** | 0.035 | 0.060 | Parallel lines across the grid |
+| **Spirals** | 0.014 | 0.054 | Rotating spiral patterns |
+| **Worms** | 0.039 | 0.058 | Squirming, elongated structures |
+
+---
 
 ## Troubleshooting
 
-**THRML server not working?**
-- Make sure you're in `thrml-server` directory
-- Check THRML is installed: `cd ../../thrml && pip install -e .`
-- Check dependencies: `pip install -r requirements.txt`
+**Server won't start?**
+- Make sure you're in the `thrml-server` directory
+- Check THRML is installed: `pip install thrml`
+- Verify dependencies: `pip install -r requirements.txt`
 
 **Slow performance?**
-- Native JS: Try smaller brush size
-- THRML: Check JAX installation for GPU support
+- The server is computing 100 steps when you click the button
+- JAX will JIT compile on first run (initial delay is normal)
+- For GPU acceleration, install JAX with CUDA support
+
+**Port already in use?**
+```bash
+PORT=8080 python server.py
+```
+
+---
+
+## What Makes This Special?
+
+Unlike typical simulations, THRML's `sample_states()` function **automatically preserves the entire simulation history**. This means:
+
+- ✅ Perfect time-travel to any previous step
+- ✅ No ring buffer limitations
+- ✅ Complete timeline always available
+- ✅ Scrub through thousands of steps instantly
+
+This is the power of THRML's probabilistic framework!

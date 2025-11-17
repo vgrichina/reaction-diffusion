@@ -2,322 +2,194 @@
 
 ## What We Built
 
-Two complete interactive implementations of Gray-Scott reaction-diffusion with **time-travel capabilities**:
+An interactive web-based Gray-Scott reaction-diffusion simulation using **THRML** (Thermal) with unlimited history and perfect time-travel capabilities.
 
-### 1. Native JavaScript Version ✅
-**Location**: `native-js/index.html`
+## THRML Server Implementation
 
-**Key Features:**
-- Complete self-contained HTML file (no dependencies!)
-- Real-time 256x256 grid simulation
-- **Ring buffer history** - stores last 1000 frames
-- Time-travel timeline scrubber
-- Play/pause/step controls
-- Playback speed control (0.25x - 4x)
-- Interactive painting with mouse/touch
-- 4 pattern presets
-- Zero latency (runs entirely in browser)
-
-**Implementation Highlights:**
-```javascript
-class SimulationHistory {
-    // Ring buffer for time-travel
-    maxSize = 1000;
-    buffer = [];  // Stores {u, v} frames
-
-    addFrame(u, v) { /* ... */ }
-    getFrame(index) { /* ... */ }
-}
-```
-
-### 2. THRML Server Version ✅
 **Location**: `thrml-server/`
 
 **Components:**
-- `simulation.py` - THRML implementation with Gray-Scott sampler
+- `simulation.py` - THRML factor graph implementation
 - `server.py` - Flask HTTP API server
-- `static/index.html` - Client UI with timeline
+- `static/thrml-playground.html` - Interactive web interface
 
-**Key Features:**
-- **Unlimited history** - THRML's `sample_states()` returns all frames
-- JAX-accelerated computation (GPU capable)
-- Complete timeline available server-side
-- HTTP API for state queries
-- Background simulation thread
-- Same timeline UI as native version
+### Key Features
 
-**Implementation Highlights:**
+- ✅ **Unlimited History** - THRML's `sample_states()` returns complete timeline
+- ✅ **JAX-Accelerated** - Hardware-accelerated computation with GPU support
+- ✅ **Factor Graph Model** - Probabilistic graphical model representation
+- ✅ **Time-Travel UI** - Scrub through entire simulation history
+- ✅ **Real-time Parameters** - Adjust F, k values on the fly
+- ✅ **Pattern Presets** - Spots, Stripes, Spirals, Worms
+- ✅ **Background Simulation** - Continuous computation in separate thread
+
+### Implementation Highlights
+
+**Factor Graph Structure:**
 ```python
 class SimulationSession:
-    def __init__(self):
-        # Store complete history
-        self.history_u = []
-        self.history_v = []
+    def __init__(self, rows, cols):
+        # Create node types for chemical species
+        self.ChemicalU = NodeType("ChemicalU", (rows, cols), np.float32)
+        self.ChemicalV = NodeType("ChemicalV", (rows, cols), np.float32)
 
-    def simulate_steps(self, n_steps):
-        # THRML returns ALL frames!
-        states = sample_states(...)
-        for i in range(n_steps):
-            self.history_u.append(states[0][i])
-            self.history_v.append(states[1][i])
-
-    def get_state(self, step=None):
-        # Can retrieve ANY historical frame
-        return self.history_v[step]
+        # Build factor graph with diffusion and coupling
+        self.program = build_program([
+            DiffusionFactor(...),      # Spatial diffusion
+            ChemicalCouplingFactor(),  # U-V interaction
+            SelfCouplingFactor(),      # Temporal continuity
+        ])
 ```
 
-### 3. Comparison UI ✅
-**Location**: `comparison/index.html`
-
-**Features:**
-- Side-by-side visualization
-- Synchronized controls
-- Live performance metrics
-- Feature comparison table
-
----
-
-## Time-Travel Implementation
-
-Both versions feature full time-travel capabilities:
-
-### Timeline UI
-```
-┌──────────────────────────────────────────────────┐
-│  [◄] [◄◄] [▶] [▶▶] [►]    Step: 1234 / 5000    │
-│  ├─────────────●─────────────────────────────┤   │
-│  0           1234                          5000   │
-└──────────────────────────────────────────────────┘
-```
-
-### Controls:
-- **◄** Step backward one frame
-- **◄◄** Play in reverse
-- **▶** Play/Pause
-- **▶▶** Play forward
-- **►** Step forward one frame
-- **Timeline scrubber** Drag to any point in history
-
-### Speed Control:
-- 0.25x, 1x, 2x, 4x playback speeds
-
----
-
-## Technical Comparison
-
-| Aspect | Native JS | THRML Server |
-|--------|-----------|--------------|
-| **Computation** | Browser CPU | Server (JAX/GPU) |
-| **Grid Size** | 256x256 | 256x512+ |
-| **History** | Ring buffer (1000) | Unlimited |
-| **Latency** | 0ms | ~50-100ms |
-| **Time-Travel** | Last 1000 frames | Complete history |
-| **Deployment** | Static HTML | Python server |
-| **Dependencies** | None | JAX, THRML, Flask |
-| **Offline** | ✅ Yes | ❌ No |
-| **GPU** | ❌ No | ✅ Yes (JAX) |
-
----
-
-## THRML-Specific Features
-
-### Factors Used:
-1. **DiffusionFactor** - Connects neighbors for diffusion
-2. **ChemicalCouplingFactor** - Links U and V at same location
-3. **SelfCouplingFactor** - Provides nodes with own current state
-
-### Samplers:
-- **GrayScottSampler** - Implements reaction-diffusion dynamics
-  - Receives 3 interaction types
-  - Computes Laplacian from neighbors
-  - Applies Gray-Scott equations
-  - Returns new concentrations
-
-### Key Insight:
+**Automatic History Tracking:**
 ```python
-# THRML's sample_states() returns COMPLETE history!
-states = sample_states(
-    key, program, schedule,
-    [U_init, V_init], [], [Block(all_u), Block(all_v)]
-)
+def simulate_steps(self, n_steps):
+    # THRML naturally returns complete history
+    states = sample_states(
+        key, self.program, schedule,
+        initial_state, free_blocks, clamped_blocks
+    )
 
-# States shape: [N_STEPS, ROWS, COLS]
-# Every single frame is available!
-U_states = states[0].reshape(N_STEPS, ROWS, COLS)
-V_states = states[1].reshape(N_STEPS, ROWS, COLS)
+    # All n_steps are automatically preserved
+    for i in range(n_steps):
+        self.history_u.append(states[0][i])
+        self.history_v.append(states[1][i])
 ```
 
-This is perfect for time-travel - no need to manually store frames!
+**Time-Travel API:**
+```python
+def get_state(self, step=None):
+    """Retrieve any historical state instantly"""
+    if step is None:
+        step = len(self.history_v) - 1
 
----
-
-## Pattern Types Implemented
-
-All implementations support these presets:
-
-1. **Spots** (F=0.055, k=0.062)
-   - Classic Turing patterns
-   - Stable spots that self-organize
-
-2. **Stripes** (F=0.035, k=0.060)
-   - Parallel lines
-   - Can create maze-like structures
-
-3. **Spirals** (F=0.014, k=0.054)
-   - Rotating spiral patterns
-   - Complex dynamics
-
-4. **Worms** (F=0.039, k=0.058)
-   - Squirming, organic structures
-   - Constantly evolving
-
----
-
-## API Design (THRML Server)
-
-### Endpoints:
-
-```
-GET  /api/state?step=N      Get frame at step N
-POST /api/params            Update simulation parameters
-POST /api/reset             Reset to initial state
-POST /api/interact          Paint chemicals at position
-GET  /api/history           Get range of frames
-POST /api/simulate          Run N more steps
+    return {
+        'v_grid': self.history_v[step].tolist(),
+        'step': step,
+        'maxStep': len(self.history_v) - 1
+    }
 ```
 
-### Example Flow:
+## Technical Details
 
-```javascript
-// 1. Get current state
-const state = await fetch('/api/state').then(r => r.json());
+### Gray-Scott Dynamics
 
-// 2. Scrub to historical frame
-const old = await fetch('/api/state?step=100').then(r => r.json());
+The simulation implements the Gray-Scott equations using THRML's custom sampler:
 
-// 3. Update parameters
-await fetch('/api/params', {
-    method: 'POST',
-    body: JSON.stringify({ F: 0.055, k: 0.062 })
-});
+```python
+class GrayScottSampler(Sampler):
+    def sample_node(self, key, node, state):
+        # Get diffused values from neighbors
+        u_diffused = state[self.diffused_u[node]]
+        v_diffused = state[self.diffused_v[node]]
 
-// 4. Paint on canvas
-await fetch('/api/interact', {
-    method: 'POST',
-    body: JSON.stringify({ x: 128, y: 128, brushSize: 10 })
-});
+        # Current values
+        u = state[self.u_nodes[node]]
+        v = state[self.v_nodes[node]]
+
+        # Gray-Scott reaction-diffusion
+        uvv = u * v * v
+        du = self.Du * (u_diffused - u) - uvv + self.F * (1 - u)
+        dv = self.Dv * (v_diffused - v) + uvv - (self.F + self.k) * v
+
+        # Update with time step
+        new_u = jnp.clip(u + du * self.dt, 0, 1)
+        new_v = jnp.clip(v + dv * self.dt, 0, 1)
+
+        return new_u, new_v
 ```
 
----
+### Server Architecture
 
-## File Structure
+**Flask API Server:**
+- Routes for state queries, parameter updates, simulation control
+- Thread-safe session management with locks
+- Background simulation thread for continuous advancement
+- Performance logging for optimization
 
-```
-reaction-diffusion/
-├── README.md                  # Full documentation
-├── QUICKSTART.md              # Quick start guide
-├── DESIGN.md                  # Architecture design doc
-├── IMPLEMENTATION_SUMMARY.md  # This file
-│
-├── native-js/
-│   └── index.html             # Self-contained JS app (8KB!)
-│
-├── thrml-server/
-│   ├── server.py              # Flask HTTP server
-│   ├── simulation.py          # THRML Gray-Scott implementation
-│   ├── requirements.txt       # Python dependencies
-│   └── static/
-│       └── index.html         # Client UI
-│
-└── comparison/
-    └── index.html             # Side-by-side comparison
-```
+**Timeline Scrubbing:**
+- Client requests specific step via `/api/state?step=N`
+- Server instantly retrieves from history list
+- JSON serialization of grid data
+- Viridis colormap rendering on client
 
----
+## Performance Characteristics
 
-## Usage Examples
+### JAX Optimization
+- **JIT Compilation**: First run compiles, subsequent runs are fast
+- **XLA Backend**: Optimized linear algebra operations
+- **GPU Support**: Automatic if JAX configured with CUDA
+- **Vectorization**: Efficient array operations
 
-### Native JS:
-```bash
-cd native-js
-open index.html
-# Or: python3 -m http.server 8000
-```
+### Scaling
+- **Grid Size**: Currently 128x128, easily scalable to 256x256+
+- **History Length**: Limited only by RAM
+- **Background Sim**: ~30 FPS continuous advancement
+- **API Latency**: ~50-100ms for state retrieval
 
-### THRML Server:
-```bash
-cd thrml-server
-pip install -r requirements.txt
-python server.py
-# Visit http://localhost:5000
-```
+## Why THRML?
 
-### Comparison:
-```bash
-# Terminal 1: Start THRML server
-cd thrml-server && python server.py
+### Automatic History Preservation
 
-# Terminal 2: Serve comparison page
-cd comparison && python3 -m http.server 8001
-# Visit http://localhost:8001
+Traditional simulations require manual history management (ring buffers, checkpointing). THRML's `sample_states()` returns the complete trajectory by design:
+
+```python
+# Traditional approach (manual history):
+history = []
+for step in range(n_steps):
+    state = compute_next(state)
+    history.append(copy(state))  # Manual tracking
+
+# THRML approach (automatic history):
+states = sample_states(key, program, schedule, ...)
+# All states automatically available!
 ```
 
----
+### Factor Graph Benefits
+
+- **Modular**: Factors can be composed and reused
+- **Probabilistic**: Natural framework for stochastic systems
+- **Expressive**: Complex dependencies easily represented
+- **Debuggable**: Clear factor graph structure
+
+### JAX Integration
+
+- **Fast**: Hardware-accelerated computation
+- **Functional**: Pure functions enable optimization
+- **Gradients**: Automatic differentiation (future work)
+- **Portable**: CPU, GPU, TPU support
 
 ## Future Enhancements
 
-### Potential additions:
-- [ ] Bookmark system (save interesting patterns)
-- [ ] Compare mode (view two timesteps side-by-side)
-- [ ] Export to image/video
-- [ ] 3D visualization mode
-- [ ] WebGL acceleration for native JS
-- [ ] Multi-user collaboration (THRML)
-- [ ] Parameter evolution over time
-- [ ] Additional colormaps (viridis, magma)
-- [ ] Touch-optimized mobile controls
+Possible extensions:
 
----
-
-## Performance Metrics
-
-### Native JS:
-- **Grid**: 256x256 (65,536 cells)
-- **FPS**: 60 (typical)
-- **History**: 1000 frames (~256MB)
-- **Latency**: 0ms
-
-### THRML Server:
-- **Grid**: 256x256+ (scalable with JAX)
-- **FPS**: 30 (background thread)
-- **History**: Unlimited
-- **Latency**: 50-100ms (HTTP polling)
-- **GPU**: Supported via JAX
-
----
+- **3D Visualization**: Render simulation in three dimensions
+- **Parameter Space Exploration**: Automated F/k sweep
+- **Bifurcation Analysis**: Study pattern transitions
+- **Multi-Species**: Extend beyond two chemicals
+- **Interactive Painting**: Mouse/touch to add chemicals (already in API)
+- **Export**: Save patterns as images/videos
+- **Collaborative**: Multi-user shared simulation
 
 ## Key Learnings
 
-1. **THRML's History Advantage**: `sample_states()` automatically returns complete history - perfect for time-travel!
-
-2. **Ring Buffer Trade-off**: Native JS uses ring buffer for limited history but zero latency
-
-3. **HTTP Polling**: Simple and effective for server communication (vs WebSocket complexity)
-
-4. **Timeline UI**: Universal control scheme works well for both implementations
-
-5. **Gray-Scott Parameters**: Small changes in F/k produce dramatically different patterns
+1. **THRML's natural history tracking** eliminates the need for manual checkpointing
+2. **Factor graphs** provide clean abstraction for reaction-diffusion
+3. **JAX acceleration** enables real-time computation for large grids
+4. **Server-side simulation** allows complex computation while keeping client lightweight
+5. **Time-travel UI** transforms simulation exploration experience
 
 ---
 
 ## Credits
 
-Based on THRML example: `thrml/examples/04_reaction_diffusion.ipynb`
+Based on:
+- THRML framework by Anthropic
+- Classic Gray-Scott reaction-diffusion model
+- Turing pattern formation theory
 
-Gray-Scott model reference: Pearson, J.E. (1993). "Complex Patterns in a Simple System"
+## References
 
----
-
-## License
-
-MIT
+- Gray-Scott Model: https://groups.csail.mit.edu/mac/projects/amorphous/GrayScott/
+- THRML: Probabilistic programming with factor graphs and Gibbs sampling
+- JAX: High-performance numerical computing
