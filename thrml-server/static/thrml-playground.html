@@ -644,14 +644,22 @@
             showStatus('Running 100 simulation steps...', 'info');
 
             try {
-                await fetch(`${API_BASE}/api/simulate`, {
+                const response = await fetch(`${API_BASE}/api/simulate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ steps: 100 })
                 });
 
-                await new Promise(resolve => setTimeout(resolve, 500));
-                await renderStep(currentStep);
+                const result = await response.json();
+
+                // Jump to the latest step after computing
+                if (result.maxStep !== undefined) {
+                    maxHistoryStep = result.maxStep;
+                    currentStep = maxHistoryStep;
+                    updateUI();
+                    await renderStep(currentStep);
+                }
+
                 showStatus('✓ 100 steps completed!', 'success');
             } catch (error) {
                 showStatus('Simulation failed', 'error');
