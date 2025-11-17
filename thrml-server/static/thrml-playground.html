@@ -297,6 +297,47 @@
             color: #742a2a;
         }
 
+        .info-panel {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-panel h2 {
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 12px;
+        }
+
+        .info-panel p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-panel ul {
+            color: #555;
+            line-height: 1.8;
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .info-panel strong {
+            color: #667eea;
+        }
+
+        .info-panel a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .info-panel a:hover {
+            text-decoration: underline;
+        }
+
         @media (max-width: 900px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -308,6 +349,21 @@
     <div class="container">
         <h1>🧪 THRML Reaction-Diffusion Playground <span class="badge">THRML Powered</span></h1>
         <p class="subtitle">Gray-Scott model with unlimited history and time-travel</p>
+
+        <div class="info-panel">
+            <h2>What is THRML?</h2>
+            <p><strong>THRML (Thermal)</strong> is a probabilistic programming framework built on JAX that uses factor graphs and Gibbs sampling to model complex systems. This demo showcases THRML's ability to maintain <strong>unlimited simulation history</strong> with full time-travel capabilities.</p>
+
+            <p><strong>Key Features:</strong></p>
+            <ul>
+                <li><strong>Unlimited History:</strong> Every simulation step is stored, enabling perfect time-travel through the entire evolution</li>
+                <li><strong>JAX-Powered:</strong> Hardware-accelerated computation using JAX's JIT compilation</li>
+                <li><strong>Factor Graph Model:</strong> The Gray-Scott reaction-diffusion system is represented as a probabilistic graphical model</li>
+                <li><strong>Server-Side Computing:</strong> Complex simulations run on the server while you interactively explore the results</li>
+            </ul>
+
+            <p>Try different patterns and parameters below, then use the time-travel controls to scrub through the simulation history!</p>
+        </div>
 
         <div id="statusMessage" class="status-message" style="display: none;"></div>
 

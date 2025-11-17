@@ -43,13 +43,7 @@ def background_simulator():
 
 @app.route('/')
 def index():
-    """Serve the client HTML"""
-    return send_from_directory('static', 'index.html')
-
-
-@app.route('/thrml-playground.html')
-def playground():
-    """Serve the playground HTML"""
+    """Serve the THRML playground"""
     return send_from_directory('static', 'thrml-playground.html')
 
 
@@ -228,6 +222,7 @@ if __name__ == '__main__':
 
     import os
     port = int(os.environ.get('PORT', 5001))
-    print(f"\n🌐 Server starting on http://localhost:{port}")
-    print(f"   Playground: http://localhost:{port}/thrml-playground.html\n")
+    print(f"\n🌐 THRML Reaction-Diffusion Server")
+    print(f"   URL: http://localhost:{port}")
+    print(f"   Grid: {session.rows}x{session.cols}\n")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
